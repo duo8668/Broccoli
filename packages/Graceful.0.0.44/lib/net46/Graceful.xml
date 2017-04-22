@@ -1,0 +1,2417 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Graceful</name>
+    </assembly>
+    <members>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.ConnectionAttribute" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.SqlTableNameAttribute" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.SqlTypeAttribute" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.SqlLengthAttribute" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.UniqueAttribute" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.NotMappedAttribute" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.InversePropertyAttribute" -->
+        <member name="F:Graceful.Context.ThreadLocker">
+            Helps to ensure we don't start using
+            the global context before it's ready.
+        </member>
+        <member name="F:Graceful.Context._GlobalCtx">
+            The global instance of the context will be stored here.
+        </member>
+        <member name="P:Graceful.Context.GlobalCtx">
+            Thread Safe version _GlobalCtx.
+        </member>
+        <member name="M:Graceful.Context.Connect(System.String,System.Boolean,System.Boolean)">
+            For most applications with a single database server you
+            can simply call this method early on in your app bootup.
+        </member>
+        <member name="F:Graceful.Context._ConnectionString">
+            The validated Connection String.
+        </member>
+        <member name="P:Graceful.Context.ConnectionString">
+            The connection string that this context will use for SqlConnections.
+            You must pass this to either the static Connect method or the
+            Constructor. Once this value is set, it should not be changed.
+        </member>
+        <member name="P:Graceful.Context.Connection">
+             Provides a new Opened SqlConnection.
+            
+             ```
+             	var ctx = new Context("ConnectionString");
+             	using (var con = ctx.Connection)
+             	{
+             		var cmd = new SqlCommand("Query", con);
+             	}
+             ```
+        </member>
+        <member name="F:Graceful.Context._DatabaseName">
+            Cache the DatabaseName lookup.
+        </member>
+        <member name="P:Graceful.Context.DatabaseName">
+            Shortcut to the current Database Name.
+        </member>
+        <member name="P:Graceful.Context.Qb">
+            Returns a new Query Builder setup to use this context.
+        </member>
+        <member name="F:Graceful.Context._Models">
+            Cache the Models Property.
+        </member>
+        <member name="P:Graceful.Context.Models">
+             Returns a list of all defined models in the current context.
+             ie: Models that have the same Connection String as this Context.
+            
+             > NOTE: Models that have no explicity set ConnectionAttribute
+             > will be included in this list if the Connection String of this
+             > Context does not match any of the ConnectionAttribute's.
+        </member>
+        <member name="F:Graceful.Context._LogStream">
+            If logging has been enabled for the current context, this will
+            get a new MemoryStream initialised by the constructor.
+        </member>
+        <member name="F:Graceful.Context._LogWriter">
+            If we have a valid MemoryStream in "_LogStream" and if someone has
+            asked for a new "LogWriter", then this will contain the contexts
+            StreamWriter, where all query logs will be written to.
+        </member>
+        <member name="P:Graceful.Context.LogWriter">
+            If logging has been enabled for the context, this will return a new
+            StreamWriter, ready to be written to. Otherwise null.
+        </member>
+        <member name="P:Graceful.Context.Log">
+             If logging has been enabled for the context, and if someone has
+             asked for a "LogWriter" we will read it and return the resulting
+             string. Which will represent all the SQL queries run against the
+             database, since the "LogWriter" was first asked for.
+            
+             > NOTE: Once you ask for the Log, we dispose of the LogWriter,
+             > and then setup a new one, so you may call Log many times,
+             > each time you will see the queries that have been executed in
+             > between asking for the Log.
+        </member>
+        <member name="P:Graceful.Context.Relationships">
+             This represents the discovered relationships.
+            
+             ```
+             	var ctx = new Context("cs");
+             	ctx.Relationships.Discovered.ForEach(relation =>
+             	{
+             		// ...
+             	});
+             ```
+        </member>
+        <member name="P:Graceful.Context.JsonSerializer">
+            The Newtonsoft Json Serializer that we will use throughout.
+        </member>
+        <member name="M:Graceful.Context.#ctor(System.String,System.Boolean,System.Boolean,System.Boolean)">
+             Creates a new Context.
+            
+             In essence a Context is an object that contains a valid
+             Connection String to your database and a list of Models
+             that are configured to connect to that Connection String.
+            
+             _see: the Models property for more info on this._
+            
+             > NOTE: The Context also manages Migrations if you let it.
+            
+             You should only have to create your own Context if you have multiple
+             diffrent databases to connect to. For most use cases please use the
+             static "Connect" method.
+        </member>
+        <member name="M:Graceful.Context.AutoCreateDatabase(System.String)">
+             Attempts to automatically create the Database.
+            
+             As we are all about a "Code-First" paradigm, the most probable cause
+             for not being able to connect to the database is because the database
+             does not actually exist yet. So we are going to attempt to create it.
+        </member>
+        <member name="M:Graceful.Context.GiveModelsContext">
+            Loops through all models in the current context and provides them
+            with this Context so they may connect to the database and perform
+            operations.
+        </member>
+        <member name="T:Graceful.ValidationException">
+             Will be thrown when an entity does not pass validation.
+            
+             ```cs
+             	var foo = new Foo { Bar = "Baz" };
+             	try
+             	{
+             		foo.Save();
+             	}
+             	catch (ValidationException e)
+             	{
+             		e.Errors.ForEach(error =>
+             		{
+             			PropertyInfo propThatFailedValidation = error.Key;
+             			string reasonWhyValidationFailed = error.Value;
+             		});
+             	}
+             ```
+        </member>
+        <member name="T:Graceful.JsonValidationException">
+             Will be thrown when a json string does not pass json schema validation.
+            
+             ```cs
+             	try
+             	{
+             		var foo = Foo.FromJson("{ ... json ... }");
+             	}
+             	catch (JsonValidationException e)
+             	{
+             		e.Errors.ForEach(error =>
+             		{
+            
+             		});
+             	}
+             ```
+        </member>
+        <member name="T:Graceful.DeleteNonExistentEntityException">
+             Will be thrown when an entity that has an Id of 0 is asked to be deleted.
+            
+             ```cs
+             	var foo = new Foo();
+            
+             	try
+             	{
+             		foo.Delete();
+             	}
+             	catch (DeleteNonExistentEntityException e)
+             	{
+             		e.NonExistentEntity == foo;
+             	}
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.UnknownRelationshipException" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.UnknownOperatorException" -->
+        <member name="T:Graceful.ExpressionTooComplexException">
+             Will be thrown when an Expression Visitor, gives up basically.
+            
+             Without using the expensive DynamicInvoke it is actually rather complex
+             to extract the actual values referenced by an expression. In the case
+             the Expression Visitor can not extract such a value it will throw this.
+            
+             Instead of using something like this:
+             ```cs
+             	var value = Some.Other.Complex.Object.That.We.Cant.Decompose.Value;
+             	var foos = Foo.Where(e => e.Bar > value).ToList();
+             ```
+            
+             You will be able to do get the same end result, all be it without the
+             type safety provided by the expression:
+             ```cs
+             	var value = Some.Other.Complex.Object.That.We.Cant.Decompose.Value;
+             	var foos = Foo.Where("Bar > {0}", value).ToList();
+             ```
+        </member>
+        <member name="F:Graceful.Model._AllModels">
+            Cache the results of GetAllModels.
+        </member>
+        <member name="M:Graceful.Model.GetAllModels">
+             Returns a list of all defined models in the current app domain.
+            
+             ```cs
+             	var models = Model.GetAllModels();
+             ```
+        </member>
+        <member name="M:Graceful.Model.GetAllModelNames">
+            Returns a list of all the model names in the current app domain.
+        </member>
+        <member name="M:Graceful.Model.GetModel(System.String)">
+             Given a model name, we will return the model type.
+            
+             The name can be a fully qualified type name:
+            
+             ```cs
+             	Model.GetModel("Aceme.Models.Person");
+             ```
+            
+             Or you may provide just the class name:
+            
+             ```cs
+              Model.GetModel("Person");
+             ```
+            
+             Or you may provide the plurized version:
+            
+             ```cs
+              Model.GetModel("Persons");
+             ```
+            
+             > NOTE: This is case-insensitive.
+        </member>
+        <member name="M:Graceful.Model.Dynamic(System.Type)">
+             Return a new DModel instance from the given Type.
+            
+             ```cs
+              Model.Dynamic(typeof(Foo)).SqlTableName;
+             ```
+        </member>
+        <member name="M:Graceful.Model.Dynamic(System.String)">
+             Return a new DModel instance from the given model name.
+            
+             ```cs
+              Model.Dynamic("Foo").SqlTableName;
+             ```
+        </member>
+        <member name="M:Graceful.Model.Dynamic(System.Object)">
+             Return a new DModel instance from the given entity.
+            
+             ```cs
+              Model.Dynamic(entity).SqlTableName;
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model.Dynamic``1" -->
+        <member name="P:Graceful.Model`1.Db">
+             The Context will automatically inject it's self here upon creation.
+             Until this has happened your Model will be all but useless.
+            
+             > NOTE: Obviously you may inject your own Custom Context here.
+        </member>
+        <member name="P:Graceful.Model`1.SqlTableName">
+             Automatically works out the name of the table
+             based on the name of the model class.
+            
+             > NOTE: We only take into account the final class name.
+             > The namespace does not effect the table name at all.
+            
+             You may override this in your model class like so:
+            
+             ```cs
+             	[SqlTableName("CustomFoo")]
+             	public class Foo
+             	{
+             		...
+             	}
+             ```
+        </member>
+        <member name="P:Graceful.Model`1.MappedProps">
+            A list of properties that are mapped through to the SQL Table.
+        </member>
+        <member name="P:Graceful.Model`1.MappedPropsExceptId">
+            When inserting and updating we do not care for the Id property.
+            This is because it AUTO INCREMENTS and should never be written to.
+        </member>
+        <member name="P:Graceful.Model`1.PropertyBag">
+             Where we store the actual data for the entity.
+             This is used in conjuction with our Get and Set methods.
+            
+             http://timoch.com/blog/2013/08/annoyed-with-inotifypropertychange/
+        </member>
+        <member name="P:Graceful.Model`1.OriginalPropertyBag">
+             When a property is first set, we store a shallow clone of the value.
+             Used in the _"Save"_ method to determin what relationships should be
+             removed.
+            
+             > NOTE: Combine this with a Before and AfterSave event,
+             > makes for simple change detection.
+        </member>
+        <member name="P:Graceful.Model`1.DbRecord">
+            When an entity is first hydrated from the database, we will save the
+            actual result returned from the db here so that we have access to
+            foreign keys.
+        </member>
+        <member name="P:Graceful.Model`1.ModifiedProps">
+            This will contain a list of properties that have indeed been
+            modified since being first hydrated from the database.
+            Used in the _"Save"_ method to only update what needs updating.
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:Graceful.Model`1.Linq" -->
+        <member name="P:Graceful.Model`1.DiscoveredEntities">
+             A list of all entities that we already know about. We will do our
+             best to always load directly for this list if we can. This is NOT a
+             GLOBAL cache but a LOCAL cache unique to the current graph.
+            
+             ```cs
+             	var foo1 = Foo.Find(1);
+             	var foo2 = Foo.Find(1);
+             	// foo1.DiscoveredEntities != foo2.DiscoveredEntities
+             ```
+            
+             If however you requested a list of Foo's like this:
+            
+             ```cs
+             	var foos = Foo.Where(f => f.Bar == "baz").ToList();
+             	// foos[1].DiscoveredEntities == foos[2].DiscoveredEntities
+             ```
+        </member>
+        <member name="P:Graceful.Model`1.CachedQueries">
+             This is used to reduce the number of database calls required to load
+             a full object graph. This is NOT a GLOBAL cache but a LOCAL cache
+             unique the current graph.
+            
+             ```cs
+             	var foo1 = Foo.Find(1);
+             	var foo2 = Foo.Find(1);
+             	// foo1.CachedQueries != foo2.CachedQueries
+             ```
+            
+             If however you requested a list of Foo's like this:
+            
+             ```cs
+             	var foos = Foo.Where(f => f.Bar == "baz").ToList();
+             	// foos[1].CachedQueries == foos[2].CachedQueries
+             ```
+            
+             This may seem crazy considering we already have a discovered entities
+             list, I promise its not. Loading from discovered entities can only
+             be done in certian circumstances. Consider the following thought
+             experiment:
+            
+             		- We load a Customer Entity.
+            
+             		- A Customer has 2 lists of Products.
+             		  The first list is their purchased products.
+             		  The second list is all products that they returned.
+            
+             		- Lets say we load the returned products list.
+             		  While we have some of the purchased products list
+             		  we don't have all of it.
+            
+             		- Thus we have to ask the database.
+            
+             		- Cached quriers really becomes helpful in circular reference
+             		  situations. Consider those Products have a relationship of all
+             		  Customers that bought that product.
+            
+             		- Eventually we end up loading the Customer we started with.
+        </member>
+        <member name="P:Graceful.Model`1.JsonSchema">
+             Returns a JSON Schema Document for the Model.
+            
+             ```cs
+             	var schema = Models.Foo.JsonSchema;
+             ```
+            
+             > TODO: Either work out why the default JSchemaGenerator does not
+             > honour our "Required" attributes or lets just build the schema
+             > ourselves. And remove the fudge we have done below.
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:Graceful.Model`1.Id" -->
+        <member name="P:Graceful.Model`1.CreatedAt">
+             All entities automatically get a created timestamp set.
+            
+             > NOTE: This is set once, when the entity is first inserted.
+        </member>
+        <member name="P:Graceful.Model`1.ModifiedAt">
+             All entities automatically get a modified timestamp set.
+            
+             > NOTE: This is set every time an entity is "Saved".
+        </member>
+        <member name="P:Graceful.Model`1.DeletedAt">
+             All entities automatically get a deleted timestamp. ie: Soft Deletes.
+            
+             > NOTE: If an entity has any value other than "NULL" in the DeletedAt
+             > column, it will be filtered out of all queries, unless of course
+             > "withTrashed" is set to true.
+        </member>
+        <member name="T:Graceful.Model`1.EntityBeforeEventHandler">
+             Event handler signature that is fired before performing an action.
+            
+             > NOTE: All before events, allow you to stop the action from
+             > happening by returning false. Once an event handler returns false
+             > it will also prevent further handlers from running.
+        </member>
+        <member name="T:Graceful.Model`1.EntityAfterEventHandler">
+            Event handler signature that is fired after performing an action.
+        </member>
+        <member name="E:Graceful.Model`1.BeforeSave">
+            Fired just before an entity is about to be saved.
+        </member>
+        <member name="E:Graceful.Model`1.AfterSave">
+            Fired after an entity has been saved.
+        </member>
+        <member name="E:Graceful.Model`1.BeforeInsert">
+            Fired just before an entity is about to be inserted.
+        </member>
+        <member name="E:Graceful.Model`1.AfterInsert">
+            Fired after an entity has been inserted.
+        </member>
+        <member name="E:Graceful.Model`1.BeforeUpdate">
+            Fired just before an entity is about to be updated.
+        </member>
+        <member name="E:Graceful.Model`1.AfterUpdate">
+            Fired after an entity has been updated.
+        </member>
+        <member name="E:Graceful.Model`1.BeforeDelete">
+            Fired just before an entity is about to be deleted.
+        </member>
+        <member name="E:Graceful.Model`1.AfterDelete">
+            Fired after an entity has been deleted.
+        </member>
+        <member name="E:Graceful.Model`1.BeforeRestore">
+            Fired just before an entity is about to be restored.
+        </member>
+        <member name="E:Graceful.Model`1.AfterRestore">
+            Fired after an entity has been restored.
+        </member>
+        <member name="E:Graceful.Model`1.PropertyChanged">
+             Fired when ever a _"Mapped"_ property changes on the entity.
+            
+             > NOTE: Lists are automatically wrapped in BindingLists and setup
+             > to fire this event whenever an entity is added or removed from
+             > the list.
+        </member>
+        <member name="M:Graceful.Model`1.ToJson">
+             Serialises the entity to JSON.
+            
+             ```cs
+             	var json = Models.Foo.Find(1).ToJson();
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.FromJson(System.String)">
+             DeSerialises the JSON to an entity.
+            
+             ```cs
+             	var entity = Models.Foo.FromJson("{...}");
+             ```
+            
+             Even though the entity may well have a Id greater than 0 and for all
+             other intents and purposes look as though it has been freshly
+             Hydrated from the database.
+            
+             It has NOT been hydrated and will be treated as though you manually
+             "newed" up the entity instance yourself. This will ensure all
+             validation checks are performed when and if the entity is saved.
+            
+             > NOTE: The JSON is ALWAYS validated against the json
+             > schema before we attempt to deserialize the json.
+        </member>
+        <member name="M:Graceful.Model`1.FromJsonArray(System.String)">
+             Given a JSON Array, we return a List of Deserialized Entities.
+            
+             ```cs
+             	var entities = Models.Foo.FromJson("[...]");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.ValidateJson(System.String)">
+             Given a json string representing an entity of type TModel
+             we will validate the json string against the generated Json Schema.
+            
+             > NOTE: If validation fails we throw a JsonValidationException.
+        </member>
+        <member name="M:Graceful.Model`1.Equals(System.Object)">
+             Determines whether the input object is equal to the current entity.
+            
+             > NOTE: If either entity has an Id of 0 then a reference equality
+             > check is done. If both entities have Id's greater than 0 then
+             > a value equality check is done on the Id's.
+        </member>
+        <member name="M:Graceful.Model`1.GetHashCode">
+             Returns the entities hash code.
+            
+             > NOTE: If the entity has an Id of 0, then the hash code of the
+             > base object is returned. If greater than 0 then the Id's hash code
+             > is returned, this matches the same logic as our Equals method.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Get``1(System.String,System.Boolean,System.Boolean)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Set``1(``0,System.String,System.Boolean)" -->
+        <member name="P:Graceful.Model`1.Hydrated">
+            Sometimes we need to know if an entity has been "newed" up by us
+            and hydrated with valid data from the database. or if it has been
+            created else where with un-validated data.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Hydrate(System.Collections.Generic.Dictionary{System.String,System.Object},System.Boolean)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Hydrate(System.Collections.Generic.List{System.Collections.Generic.Dictionary{System.String,System.Object}},System.Boolean)" -->
+        <member name="M:Graceful.Model`1.SaveDiscoveredEntities(System.Reflection.PropertyInfo,System.Object)">
+            When ever a property is changed this will run and ensure we have
+            saved all new entities to our dicovered list so we may load them
+            easily in the future.
+        </member>
+        <member name="M:Graceful.Model`1.UpdateModified(System.Reflection.PropertyInfo)">
+            This just keeps a list of all the mapped properties that have
+            changed since hydration.
+        </member>
+        <member name="M:Graceful.Model`1.FilterTrashed(System.Boolean)">
+             Filters out Soft Deleted Entities
+            
+             All "READ" methods will use this to filter out any soft deleted
+             entities. Each of the methods will have a "withTrashed" parameter.
+        </member>
+        <member name="M:Graceful.Model`1.Find(System.Int32,System.Boolean)">
+             Find an entity by it's primary key.
+            
+             ```cs
+             	var entity = Models.Foo.Find(123);
+             ```
+            
+             > NOTE: Returns null if nothing, throws exception if more than one.
+        </member>
+        <member name="M:Graceful.Model`1.Find(`0,System.Boolean)">
+             Find a similar entity.
+            
+             ```cs
+             	var entity = Models.Foo.Find(new Foo { Bar = "abc" });
+             ```
+            
+             > NOTE: Returns null if nothing, throws exception if more than one.
+        </member>
+        <member name="M:Graceful.Model`1.Exists(System.Int32,System.Boolean)">
+             Checks to see if an entity exists by it's primary key.
+            
+             ```cs
+             	if (Models.Foo.Exists(123))
+             	{
+            
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Exists(`0,System.Boolean)">
+             Checks to see if a similar entity already exists.
+            
+             ```cs
+             	if (Models.Foo.Exists(new Foo { Bar = "abc" }))
+             	{
+            
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.All(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Do all entities in the set pass the expression?
+            
+             ```cs
+             	if (Models.Foo.All(e => e.Bar == "abc"))
+             	{
+             		// All Foo's have their Bar property set to abc
+             	}
+             	else
+             	{
+             		// Not all Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.All(System.String,System.Boolean)">
+             Do all entities in the set pass the dynamic string expression?
+            
+             ```cs
+             	if (Models.Foo.All("e => e.Bar == \"abc\""))
+             	{
+             		// All Foo's have their Bar property set to abc
+             	}
+             	else
+             	{
+             		// Not all Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Any(System.Boolean)">
+             Are there any entities in the set at all?
+            
+             ```cs
+             	if (Models.Foo.Where(e => e.Bar == "abc").Any())
+             	{
+             		// The set contains at least one Foo.
+             	}
+             	else
+             	{
+             		// No Foo's were found.
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Any(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Do any entities in the set pass the expression?
+            
+             ```cs
+             	if (Models.Foo.Any(e => e.Bar == "abc"))
+             	{
+             		// At least one Foo has it's Bar property set to abc
+             	}
+             	else
+             	{
+             		// No Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Any(System.String,System.Boolean)">
+             Do any entities in the set pass the dynamic string expression?
+            
+             ```cs
+             	if (Models.Foo.Any("e => e.Bar == \"abc\""))
+             	{
+             		// At least one Foo has it's Bar property set to abc
+             	}
+             	else
+             	{
+             		// No Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Count(System.Boolean)">
+             How many entities are there in the set?
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count();
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Count(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Number of entities that match the expression?
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Count(System.String,System.Boolean)">
+             Number of entities that match the dynamic string expression?
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.First(System.Boolean)">
+             Returns the first entity of the set.
+            
+             ```cs
+             	var entity = Models.Foo.First();
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.First(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Returns the first entity of the set that matches the expression.
+            
+             ```cs
+             	var entity = Models.Foo.First(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.First(System.String,System.Boolean)">
+             Returns the first entity of the set that matches the
+             dynamic string expression.
+            
+             ```cs
+             	var entity = Models.Foo.First("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.FirstOrDefault(System.Boolean)">
+             Returns the first element of the set,
+             or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault();
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.FirstOrDefault(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Returns the first element of the set that matches the expression,
+             or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.FirstOrDefault(System.String,System.Boolean)">
+             Returns the first element of the set that matches the dynamic string
+             expression, or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Single(System.Boolean)">
+             Returns the only entity of the set. If the set contains no entities
+             or more than one entity then an exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single();
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Single(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Returns the only entity of the set that matches the expression.
+             If the set contains no entities or more than one entity then an
+             exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Single(System.String,System.Boolean)">
+             Returns the only entity of the set that matches the dynamic string
+             expression. If the set contains no entities or more than one entity
+             then an exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.SingleOrDefault(System.Boolean)">
+             Returns the only element of the set, or a default value if the set
+             is empty; this method throws an exception if there is more than one
+             element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault();
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.SingleOrDefault(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)">
+             Returns the only element of the set that matches the expression, or a
+             default value if the set is empty; this method throws an exception
+             if there is more than one element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.SingleOrDefault(System.String,System.Boolean)">
+             Returns the only element of the set that matches the dynamic string
+             expression, or a default value if the set is empty; this method
+             throws an exception if there is more than one element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Where(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Where(System.String,System.Boolean)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Like(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Like(System.String,System.Boolean)" -->
+        <member name="M:Graceful.Model`1.OrderBy(System.Linq.Expressions.Expression{System.Func{`0,System.Object}},Graceful.Query.OrderDirection,System.Boolean)">
+             Orders the set based on the expression.
+            
+             ```cs
+             	var orderedEntities = Models.Foo
+             	.OrderBy(e => e.Bar, OrderDirection.DESC)
+             	.OrderBy(e => e.Baz, OrderDirection.ASC);
+             ```
+            
+             > NOTE: ASC is the default direction, if not supplied.
+        </member>
+        <member name="M:Graceful.Model`1.OrderBy(System.String,Graceful.Query.OrderDirection,System.Boolean)">
+             Orders the set based on the dynamic string expression.
+            
+             ```cs
+             	var orderedEntities = Models.Foo
+             	.OrderBy("e => e.Bar", OrderDirection.DESC)
+             	.OrderBy("e => e.Baz", OrderDirection.ASC);
+             ```
+            
+             > NOTE: ASC is the default direction, if not supplied.
+        </member>
+        <member name="M:Graceful.Model`1.Skip(System.Int32,System.Boolean)">
+             Bypasses a specified number of entities in the set
+             and then returns the remaining entities.
+            
+             ```cs
+             	var first10EntitiesIgnored = Models.Foo.Skip(10);
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Take(System.Int32,System.Boolean)">
+             Returns a specified number of contiguous
+             entities from the start of the set.
+            
+             ```cs
+             	var IHave10Entities = Models.Foo.Take(10);
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.ToArray(System.Boolean)">
+             Returns an array of entities.
+            
+             ```cs
+             	foreach (var entity in Models.Foo.ToArray())
+             	{
+            
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.ToList(System.Boolean)">
+             Returns a List of entities.
+            
+             ```cs
+             	Models.Foo.ToList().ForEach(entity =>
+              {
+            
+              });
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.Create(`0)">
+             Given an instance we will add it to the db then return it.
+            
+             ```cs
+             	var entity = Model.Foo.Create(new Foo { Bar = "abc" });
+             ```
+            
+             Which is exactly the same as:
+            
+             ```cs
+             	var entity = new Foo { Bar = "abc" }.Save();
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Create(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Model`1.Create(System.String)">
+             Given a json object we will create a new instance and save it.
+            
+             ```cs
+             	var entity = Model.Foo.Create(@"{'Bar':'abc','Qux':123}");
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.CreateMany(System.Collections.Generic.List{`0})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.CreateMany(System.Collections.Generic.List{System.Collections.Generic.Dictionary{System.String,System.Object}})" -->
+        <member name="M:Graceful.Model`1.CreateMany(System.String)">
+             Given a json array we will return a list of saved entities.
+            
+             ```cs
+             	var entities = Model.Foo.Create(@"[{...},{...},{...}]");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.SingleOrCreate(`0)">
+             Given an instance we will first check to see if a similar entity
+             exists in the database. If it does we will return that instance.
+             If not we will create a new instance for you.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrCreate(new Foo { Bar = "abc" });
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.SingleOrCreate(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Model`1.SingleOrCreate(System.String)">
+             Given a json string we will first check to see if a similar entity
+             exists in the database. If it does we will return that instance.
+             If not we will create a new instance for you.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrCreate("{...JSON...}");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.SingleOrNew(`0)">
+             Similar to SingleOrCreate except we do not add the new instance
+             to the database. We simply return the model you passed in.
+             It is then on you to call Save() on that model if you wish to
+             add it to the db.
+            
+             ```cs
+             	var user = Model.User.SingleOrNew(new User { Name = "Fred"; });
+             	user.BirthYear = 2001;
+             	user.Save();
+             ```
+            
+             > NOTE: This can be handy when merging object graphs manually.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.SingleOrNew(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Model`1.SingleOrNew(System.String)">
+             Similar to SingleOrCreate except we do not add the new instance
+             to the database. We simply return the model you passed in.
+             It is then on you to call Save() on that model if you wish to
+             add it to the db.
+            
+             ```cs
+             	var user = Model.User.SingleOrNew("{...JSON...}");
+             	user.BirthYear = 2001;
+             	user.Save();
+             ```
+            
+             > NOTE: This can be handy when merging object graphs manually.
+        </member>
+        <member name="M:Graceful.Model`1.FirstOrCreate(`0)">
+             Given an instance we will first check to see if there are any similar
+             entities that exist in the database. If there are 1 or more entities
+             that are similar to the provided we will return the first in the set.
+             If there are no similar entities we will save the provided entity
+             and return it.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrCreate(new Foo { Bar = "abc" });
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.FirstOrCreate(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Model`1.FirstOrCreate(System.String)">
+             Given some json we will first check to see if there are any similar
+             entities that exist in the database. If there are 1 or more entities
+             that are similar to the provided we will return the first in the set.
+             If there are no similar entities we will save the provided entity
+             and return it.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrCreate("{...JSON...}");
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.FirstOrNew(`0)">
+             Similar to FirstOrCreate except we do not add the new instance
+             to the database. We simply return the model you passed in.
+             It is then on you to call Save() on that model if you wish to
+             add it to the db.
+            
+             ```cs
+             	var user = Model.User.FirstOrNew(new User { Name = "Fred"; });
+             	user.BirthYear = 2001;
+             	user.Save();
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.FirstOrNew(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Model`1.FirstOrNew(System.String)">
+             Similar to FirstOrCreate except we do not add the new instance
+             to the database. We simply return the model you passed in.
+             It is then on you to call Save() on that model if you wish to
+             add it to the db.
+            
+             ```cs
+             	var user = Model.User.FirstOrNew("{...JSON...}");
+             	user.BirthYear = 2001;
+             	user.Save();
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Update(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Model`1.Update(System.String)">
+             Given a json object we will find an entity from the database with
+             the same Id and then merge json into the entity, saving the result.
+            
+             ```cs
+             	var entity = Model.Foo.Update
+             	(
+             		"{ Id: 123, Bar: abc, Qux: 123 }"
+             	);
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.UpdateMany(System.Collections.Generic.List{`0})" -->
+        <member name="M:Graceful.Model`1.UpdateMany(System.String)">
+             Given a json array we will loop through each entity, find an entity
+             from the database with the same Id and then merge json into the
+             entity, saving the result.
+            
+             ```cs
+             	Model.Foo.UpdateMany
+             	(
+             		"[{Id:123,Bar:abc,Qux:123},{Id:456,Bar:xyz,Qux:789}]"
+             	);
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.UpdateAll(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.UpdateAll(System.String,System.Boolean)" -->
+        <member name="M:Graceful.Model`1.UpdateOrCreate(`0,`0)">
+             Check to see if a similar model exists, using properties.
+             If so lets update it with some new values.
+             If not lets create a brand new record.
+            
+             ```cs
+             	var user = Models.User.UpdateOrCreate
+             	(
+             		new User { Name = "Brad" },
+             		new User { Email = "brad@kdis.com.au" }
+             	);
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.UpdateOrCreate(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},`0)">
+             Check to see if model exists, using expression.
+             If so lets update it with some new values.
+             If not lets create a brand new record.
+            
+             ```cs
+             	var user = Models.User.UpdateOrCreate
+             	(
+             		e => e.Id == 1,
+             		new User { Email = "brad@kdis.com.au" }
+             	);
+             ```
+        </member>
+        <member name="M:Graceful.Model`1.UpdateOrCreate(System.String,`0[])">
+             This overload is super useful for seeding or other mass creation.
+            
+             ```cs
+             	Models.User.UpdateOrCreate
+             	(
+             		"Id",
+             		new User { Id = 1, Name = "Brad" },
+             		new User { Id = 2, Name = "Fred" },
+             		new User { Id = 3, Name = "Bob" }
+             	);
+             ```
+            
+             > NOTE: You should NOT use Id unless you specfically set the Id for
+             > each entity in the seed. If you do not set the Id yourself the
+             > database server will, which means the User whos name is Brad may
+             > not always have the Id of "1".
+        </member>
+        <member name="M:Graceful.Model`1.DeleteAll(System.Boolean)">
+             Deletes enMasse without first loading the entites into memory.
+            
+             ```cs
+             	// soft deletes all Foo's in the table!
+             	Models.Foo.DeleteAll();
+            
+             	// soft deletes all Foo's that have Bar set to Baz
+             	Models.Foo.Where(e => e.Bar == "Baz").DeleteAll();
+            
+             // hard deletes a Foo with the Id of 56
+             Models.Foo.Where(e => e.Id == 56).DeleteAll(hardDelete: true);
+             ```
+            
+             > NOTE: Keep in mind this will not trigger any of the entity events.
+        </member>
+        <member name="M:Graceful.Model`1.DeleteAll(System.Int32,System.Boolean)">
+             Delete the entity for the given primary key id.
+            
+             ```cs
+             	Models.Foo.DeleteAll(12);
+             ```
+            
+             Which is the same as:
+            
+             ```cs
+             	Models.Foo.Find(12).Delete();
+             ```
+            
+             Except that Destroy only performs a single SQL Query.
+             Use Delete when you already have an entity loaded.
+             Otherwise use Destroy if you know the Id in advance.
+            
+             > NOTE: Keep in mind this will not trigger any of the entity events.
+        </member>
+        <member name="M:Graceful.Model`1.DeleteAll(System.Boolean,System.Int32[])">
+             Delete all entities for the given primary key ids.
+            
+             ```cs
+             	Models.User.DeleteAll(43,57,102);
+             ```
+            
+             > NOTE: Keep in mind this will not trigger any of the entity events.
+        </member>
+        <member name="M:Graceful.Model`1.Delete(System.Boolean)">
+             Deletes an entity from the database.
+            
+             ```cs
+             	Model.Foo.Find(1).Delete();
+             ```
+            
+             > NOTE: By default we only "Soft" delete.
+        </member>
+        <member name="M:Graceful.Model`1.Restore">
+             Restores a soft deleted record.
+            
+             ```cs
+             	var user = Models.User.Find(1, true).Restore();
+             ```
+            
+             > NOTE: If you need to restore in bulk, just perform a
+             > batch Update and set the DeletedAt property to null.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Model`1.Validate" -->
+        <member name="M:Graceful.Model`1.Save(System.Collections.Generic.List{System.Object})">
+             Saves an entity to the database.
+            
+             This method will look at the "Id" property, if 0 then the instance
+             must be a brand new record. And we perform an "INSERT" operation.
+             If the "Id" is greater than 0 then we perform an "UPDATE" operation.
+            
+             ```cs
+             	var brad = new Models.User();
+             	brad.FirstName = "Bradley";
+             	brad.LastName = "Jones";
+             	brad.Save();
+             ```
+            
+             > NOTE: We are recursive and will save all related entities.
+        </member>
+        <member name="M:Graceful.Model`1.MergeEntities(`0,`0,System.Collections.Generic.List{System.Object},System.Collections.Generic.List{System.Object})">
+             Given 2 entities, an updated and an existing we merge them together.
+            
+             This method is smart enough to recurse into the object graph,
+             assuming an updated entity has a valid Id set, this method will
+             lookup the corresponding entity from the database and continue the
+             merge process.
+            
+             ```cs
+             	var intial = new Foo
+             	{
+             		Bar = "abc",
+             		Baz = new Baz
+             		{
+             			Qux = 123,
+             			FooBar = "acme"
+             		},
+             		FuBar = "xyz"
+             	}.Save();
+            
+             	var updated = new Foo
+             	{
+             		Bar = "cba",
+             		Baz = new Baz
+             		{
+             			Id = 1,
+             			Qux = 456
+             		}
+             	};
+            
+             	var merged = Foo.MergeEntities(updated, Foo.Find(1));
+             ```
+            
+             The merged result might look something like:
+             ```json
+             	{
+             		"Id": 1,
+             		"Bar": "cba",
+             		"Baz":
+             		{
+             			"Id": 1,
+             			"Qux": 456,
+             			"FooBar": "acme"
+             		},
+             		"FuBar": "xyz"
+             	}
+             ```
+            
+             However consider the following example:
+             ```cs
+             	var intial = new Foo
+             	{
+             		Bar = "abc",
+             		Baz = new Baz
+             		{
+             			Qux = 123,
+             			FooBar = "acme"
+             		},
+             		FuBar = "xyz"
+             	}.Save();
+            
+             	var updated = new Foo
+             	{
+             		Bar = "cba",
+             		Baz = new Baz
+             		{
+             			Qux = 456
+             		}
+             	};
+            
+             	var merged = Foo.MergeEntities(updated, Foo.Find(1));
+             ```
+            
+             The merged result now looks something like:
+             ```json
+             	{
+             		"Id": 1,
+             		"Bar": "cba",
+             		"Baz":
+             		{
+             			"Id": 0,
+             			"Qux": 456,
+             			"FooBar": null
+             		},
+             		"FuBar": "xyz"
+             	}
+             ```
+            
+             Notice how the instance of Baz got replaced.
+             This is because we omitted the Id property on the Baz instance.
+            
+             Similar logic is used when dealing with lists of entities,
+             except that we _"Add"_ to the list instead of replace.
+            
+             > NOTE: Remember that at this point the merged result is only in
+             > memory, if you are happy with it you would then need to Save it.
+        </member>
+        <member name="M:Graceful.Model`1.MergeOrNew(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},`0)">
+             Merges the entity based on some other value other than Id.
+            
+             ```cs
+             	var foo = new Foo();
+            
+             	foo.Bars.Add
+             	(
+             		Bar.MergeOrNew
+             		(
+             			e => e.Baz == "abc",
+             			new Bar
+             			{
+             				Baz = "abc",
+             				Qux = 123
+             			}
+             		)
+             	);
+            
+             	foo.Save();
+             ```
+            
+             > NOTE: You might also consider SingleOrNew or even FirstOrNew
+             > in such a situation.
+        </member>
+        <member name="T:Graceful.IModel`1">
+             Covariant Generic Interface
+            
+             This allows us to cast, instead of using Reflection.
+             Which obviously is much, much faster.
+            
+             @see: http://stackoverflow.com/questions/16795750
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Dynamic.ExpressionBuilder.BuildPredicateExpression``1(System.String)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Dynamic.ExpressionBuilder.BuildPropertySelectExpression``1(System.String)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Dynamic.ExpressionBuilder.BuildEqualityExpression``1(``0)" -->
+        <member name="M:Graceful.Extensions.ExtensionMethods.ForEach``1(System.Collections.Generic.IEnumerable{``0},System.Action{``0})">
+            Give any Enumerable a ForEach Method.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Extensions.ExtensionMethods.ForEach``1(System.Collections.Generic.IEnumerable{``0},System.Func{``0,System.Boolean})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Extensions.ExtensionMethods.ForEach``1(System.Collections.Generic.IEnumerable{``0},System.Action{System.Int32,``0})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Extensions.ExtensionMethods.ForEach``1(System.Collections.Generic.IEnumerable{``0},System.Func{System.Int32,``0,System.Boolean})" -->
+        <member name="M:Graceful.Extensions.ExtensionMethods.ToTraceString(System.Data.SqlClient.SqlCommand,System.Int32)">
+             Creates a string representation of the command
+             for logging and debugging purposes.
+            
+             ```cs
+             	var cmd = new SqlCommand(query, connection);
+             	var trace = cmd.ToTraceString();
+             ```
+            
+             _Credit: http://git.io/v3H1T_
+        </member>
+        <member name="M:Graceful.Query.Builder.#ctor(Graceful.Context)">
+            Pass the context on to the Base Helper Class.
+        </member>
+        <member name="F:Graceful.Query.Builder.Buffer">
+            This is where we store and build the actual SQL text.
+        </member>
+        <member name="F:Graceful.Query.Builder.BufferValues">
+            We store the values for any Sql Parameters here.
+        </member>
+        <member name="F:Graceful.Query.Builder.CurrentClause">
+            Keep track of the current clause that is being used.
+            This allows us to call the same method twice and simply
+            add on to the clause in a sensible fashion.
+        </member>
+        <member name="F:Graceful.Query.Builder.CurrentSeperator">
+            The counter part to the CurrentClause. When we append to the same
+            clause, how do we seperate the values, with a comma or somethingelse.
+        </member>
+        <member name="P:Graceful.Query.Builder.Sql">
+            Public access to the current buffer.
+        </member>
+        <member name="P:Graceful.Query.Builder.IsEmpty">
+            If the buffer has nothing in it, we will return true.
+        </member>
+        <member name="P:Graceful.Query.Builder.Parameters">
+            Public access to the current list of parameter values.
+        </member>
+        <member name="P:Graceful.Query.Builder.Hash">
+            Returns are hash of the current _"built"_ query, helpful for caching.
+        </member>
+        <member name="P:Graceful.Query.Builder.Cmd">
+             Fluent version of BuildCmd.
+            
+             ```cs
+             	var ctx = new Context();
+             	var qb = new QueryBuilder(ctx);
+             	var cmd = qb
+             		.SELECT("*").FROM("people")
+             		.WHERE("surname = {0}", Jones)
+             		.WHERE("age > {0}", 27)
+             	 	.Cmd;
+             ```
+        </member>
+        <member name="P:Graceful.Query.Builder.Reader">
+             Fluent version of Read.
+            
+             ```cs
+             	var ctx = new Context();
+             	var qb = new QueryBuilder(ctx);
+             	using (var reader = qb.SELECT("*").FROM("Foo").Reader)
+             	{
+             		...read the reader...
+             	}
+             ```
+            
+             > NOTE: Assuming you wrap the Query call in a "using" we will
+             > automatically close and dispose of both the SqlCommand and the
+             > SqlConnection used in the making of the reader.
+        </member>
+        <member name="P:Graceful.Query.Builder.DataTable">
+             Fluent version of ReadToDt.
+            
+             ```cs
+             	var ctx = new Context();
+             	var qb = new QueryBuilder(ctx);
+             	using (var dt = qb.SELECT("*").FROM("Bar").DataTable)
+             	{
+             		foreach (DataRow row in dt.Rows)
+             		{
+             			foreach (DataColumn column in dt.Columns)
+             			{
+             				var ColumnName = column.ColumnName;
+             				var ColumnData = row[column];
+             			}
+             		}
+             	}
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:Graceful.Query.Builder.Scalar" -->
+        <member name="M:Graceful.Query.Builder.Execute">
+             Fluent version of Execute.
+            
+             ```cs
+             	var ctx = new Context();
+             	var qb = new QueryBuilder(ctx);
+             	var rowsEffected = qb.DELETE_FROM("foo").WHERE("x=y").Execute();
+             ```
+            
+             > NOTE: It didn't make sense to have this one as a Property.
+        </member>
+        <member name="P:Graceful.Query.Builder.Rows">
+             Fluent version of GetRows.
+            
+             ```cs
+             	var ctx = new Context();
+             	var qb = new QueryBuilder(ctx);
+             	qb.SELECT("*").FROM("People").Rows.ForEach(row =>
+             	{
+             		row.Keys.ToList().ForEach(column =>
+             		{
+             			var value = row[column];
+             		});
+             	});
+             ```
+        </member>
+        <member name="P:Graceful.Query.Builder.Row">
+             Fluent version of GetRow.
+            
+             ```cs
+             	var ctx = new Context();
+             	var qb = new QueryBuilder(ctx);
+             	var person = qb.SELECT("*").FROM("People").WHERE("Id = 10").Row;
+             ```
+        </member>
+        <member name="M:Graceful.Query.Builder.AppendClause(System.String,System.String,System.String,System.Object[])">
+             The corner stone of this Query Builder, this will append the
+             provided format string and arguments to the current SQL clause
+             in the buffer string builder.
+            
+             > NOTE: We keep this method internal, to extend the query builder
+             > you may use this or even override it to provide further advanced
+             > functionality.
+        </member>
+        <member name="M:Graceful.Query.Builder._(System.String,System.Object[])">
+             Appends to the current clause.
+            
+             You can construct your queries like this:
+             ```cs
+             	Qb
+             	.SELECT("Id")
+             	.SELECT("Name")
+             	.FROM("Users")
+             	.WHERE("Name LIKE {0}", "%rad")
+             	.WHERE("Age > {0}", 20)
+             ```
+            
+             Or you can do something like this:
+             ```cs
+             	Qb
+             	.SELECT("Id")
+             	._("Name")
+             	.FROM("Users")
+             	.WHERE("Name LIKE {0}", "%rad")
+             	._("Age > {0}", 20)
+             ```
+        </member>
+        <member name="M:Graceful.Query.Builder._IF(System.Boolean,System.String,System.Object[])">
+             Only appends to the current clause if the condition is true.
+            
+             ```cs
+             	void DynamicSql(int? categoryId, int? supplierId)
+             	{
+              	var query = Qb
+               	.SELECT("ID, Name")
+                	.FROM("Products")
+                 	.WHERE()
+                  ._IF(categoryId.HasValue, "CategoryID = {0}", categoryId)
+                  ._IF(supplierId.HasValue, "SupplierID = {0}", supplierId)
+                  .ORDER_BY("Name DESC");
+              }
+             ```
+        </member>
+        <member name="M:Graceful.Query.Builder.COLS(System.Object[])">
+             Appends a list of columns to an INSERT INTO clause.
+            
+             ```cs
+             	Qb.INSERT_INTO("Foo").COLS("name", "age");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Builder.VALUES(System.Object[])">
+             Appends a list of values to an INSERT INTO clause.
+            
+             ```cs
+             	Qb.INSERT_INTO("Foo").VALUES("Bar", "Baz");
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Builder.SET(System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="F:Graceful.Query.Helper.Db">
+            The instance of the Context that we will be using.
+        </member>
+        <member name="M:Graceful.Query.Helper.#ctor(Graceful.Context)">
+            You must inject an instance of the Context so we
+            can connect to the database and execute queries.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Helper.BuildCmd(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Query.Helper.Read(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+             Returns a new SqlDataReader for your query.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	using (var reader = helper.Read("SELECT * FROM Foo"))
+             	{
+             		...read the reader...
+             	}
+             ```
+            
+             > NOTE: Assuming you wrap the Query call in a "using" we will
+             > automatically close and dispose of both the SqlCommand and the
+             > SqlConnection used in the making of the reader.
+        </member>
+        <member name="M:Graceful.Query.Helper.ReadToDt(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+             Returns a loaded DataTable with your Query Results.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	using (var dt = helper.ReadToDt("SELECT * FROM Bar"))
+             	{
+             		foreach (DataRow row in dt.Rows)
+             		{
+             			foreach (DataColumn column in dt.Columns)
+             			{
+             				var ColumnName = column.ColumnName;
+             				var ColumnData = row[column];
+             			}
+             		}
+             	}
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Helper.ReadToScalar(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Helper.Execute(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})" -->
+        <member name="M:Graceful.Query.Helper.GetRows(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+             Returns a list, where each row is represented by a Dictionary.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	helper.GetRows("SELECT * FROM People").ForEach(row =>
+             	{
+             		row.Keys.ToList().ForEach(column =>
+             		{
+             			var value = row[column];
+             		});
+             	});
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.GetRow(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+             Returns the first row of a result set represented by a Dictionary.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	var person = helper.GetRow("SELECT * FROM People WHERE Id = 10");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.TableExists(System.String)">
+             Check to see if the table exists in the database.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	if (helper.TableExists("FooBar"))
+             	{
+             		// The Table FooBar exists
+             	}
+             	else
+             	{
+             		// The Table FooBar does not exist
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.TableEmpty(System.String)">
+             Check to see if the table is empty or not.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	if (helper.TableEmpty("FooBar"))
+             	{
+             		// The table FooBar is Empty, contains no records.
+             	}
+             	else
+             	{
+             		// The table FooBar is not Empty, does contains some records.
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.ColumnExists(System.String,System.String)">
+             Check to see if a column exists in a given table.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	if (helper.ColumnExists("FooBar", "Baz"))
+             	{
+             		// The table FooBar contains the column Baz.
+             	}
+             	else
+             	{
+             		// The table FooBar does not contain the column Baz.
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.ColumnDataType(System.String,System.String)">
+             Returns the current SqlDbType of the given column.
+            
+             ```cs
+             	var ctx = new Context();
+             	var helper = new Query.Helper(ctx);
+             	var type = helper.ColumnDataType("FooBar", "Baz");
+            
+             	// ie: SqlDbType.NVarChar
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.InlineSqlIds(System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+             Inlines SqlId Parameters.
+            
+             > NOTE: See the Graceful.Query.SqlId class docs for more info.
+        </member>
+        <member name="M:Graceful.Query.Helper.RunQuery(System.Data.SqlClient.SqlCommand,System.Func{System.Data.SqlClient.SqlCommand,System.Object},System.Func{System.Object,System.Int32},System.Boolean)">
+             Given a SqlCommand and a way to execute that command,
+             we finally run the query. Used internally by GetReader, GetScarlar
+             and Execute methods.
+            
+             ```cs
+             	var cmd = this.BuildCmd("SELECT * FROM Foo");
+             	this.RunQuery
+             	(
+             		cmd,
+             		query => query.ExecuteReader / ExecuteScalar / ExecuteNonQuery
+             		affected =>
+             		{
+             			// given the result from the above execute method
+             			// you then need to return the number of affected rows.
+             		},
+             		dispose: true // do you want the connection disposed afterwards
+             	);
+             ```
+        </member>
+        <member name="M:Graceful.Query.Helper.GetReader(System.Data.SqlClient.SqlCommand)">
+            Given a SqlCommand, we will return a SqlReader.
+        </member>
+        <member name="M:Graceful.Query.Helper.GetScalar(System.Data.SqlClient.SqlCommand)">
+            Given a SqlCommand, we will run an ExecuteScalar Operation.
+        </member>
+        <member name="M:Graceful.Query.Helper.Execute(System.Data.SqlClient.SqlCommand)">
+            Given a SqlCommand, we will run an ExecuteNonQuery Operation.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Helper.GetRows(System.Data.DataTable)" -->
+        <member name="F:Graceful.Query.Linq`1.Ctx">
+            The Graceful Database Context.
+        </member>
+        <member name="F:Graceful.Query.Linq`1.TableName">
+            The table name of this TModel.
+        </member>
+        <member name="F:Graceful.Query.Linq`1._DefiningQuery">
+            A Graceful Query Builder instance that
+            is the source of data for the set.
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:Graceful.Query.Linq`1.Sql" -->
+        <!-- Badly formed XML comment ignored for member "P:Graceful.Query.Linq`1.Parameters" -->
+        <member name="M:Graceful.Query.Linq`1.#ctor(System.String,Graceful.Context,Graceful.Query.Builder)">
+             LinqModel Constructor
+            
+             Unlike the DbExtensions SqlSet class we are mutable.
+             The Where, OrderBy, Skip, Take, etc just replace the
+             underlying Set object.
+            
+             We will also dispose of the the Datbase Connection for you
+             the second any meaningful data has been returned from the class.
+        </member>
+        <member name="M:Graceful.Query.Linq`1.ToString">
+            Returns a string representation of the current query.
+        </member>
+        <member name="M:Graceful.Query.Linq`1.All(System.String,System.Object[])">
+             Do all entities in the set pass the SQL predicate?
+            
+             ```cs
+             	if (Models.Foo.All("Bar = {0}", "abc"))
+             	{
+             		// All Foo's have their Bar property set to abc
+             	}
+             	else
+             	{
+             		// Not all Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.All(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Do all entities in the set pass the expression?
+            
+             ```cs
+             	if (Models.Foo.All(e => e.Bar == "abc"))
+             	{
+             		// All Foo's have their Bar property set to abc
+             	}
+             	else
+             	{
+             		// Not all Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.All(System.String)">
+             Do all entities in the set pass the dynamic string expression?
+            
+             ```cs
+             	if (Models.Foo.All("e => e.Bar == \"abc\""))
+             	{
+             		// All Foo's have their Bar property set to abc
+             	}
+             	else
+             	{
+             		// Not all Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Any">
+             Are there any entities in the set at all?
+            
+             ```cs
+             	if (Models.Foo.Where(e => e.Bar == "abc").Any())
+             	{
+             		// The set contains at least one Foo.
+             	}
+             	else
+             	{
+             		// No Foo's were found.
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Any(System.String,System.Object[])">
+             Do any entities in the set pass the SQL predicate?
+            
+             ```cs
+             	if (Models.Foo.Any("Bar = {0}", "abc"))
+             	{
+             		// At least one Foo has it's Bar property set to abc
+             	}
+             	else
+             	{
+             		// No Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Any(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Do any entities in the set pass the expression?
+            
+             ```cs
+             	if (Models.Foo.Any(e => e.Bar == "abc"))
+             	{
+             		// At least one Foo has it's Bar property set to abc
+             	}
+             	else
+             	{
+             		// No Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Any(System.String)">
+             Do any entities in the set pass the dynamic string expression?
+            
+             ```cs
+             	if (Models.Foo.Any("e => e.Bar == \"abc\""))
+             	{
+             		// At least one Foo has it's Bar property set to abc
+             	}
+             	else
+             	{
+             		// No Foo's have their Bar property set to abc
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Count">
+             Number of entities are there in the current set.
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count();
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Count(System.String,System.Object[])">
+             Number of entities that match the SQL predicate.
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count("Bar = {0}", "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Count(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Number of entities that match the expression.
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Count(System.String)">
+             Number of entities that match the dynamic string expression.
+            
+             ```cs
+             	var numberOfEntities = Models.Foo.Count("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.First">
+             Returns the first entity of the set.
+            
+             ```cs
+             	var entity = Models.Foo.First();
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.First(System.String,System.Object[])">
+             Returns the first entity that matches the SQL predicate.
+            
+             ```cs
+             	var entity = Models.Foo.First("Bar = {0}", "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.First(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Returns the first entity that matches the expression.
+            
+             ```cs
+             	var entity = Models.Foo.First(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.First(System.String)">
+             Returns the first entity that matches the dynamic string expression.
+            
+             ```cs
+             	var entity = Models.Foo.First("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.FirstOrDefault">
+             Returns the first element of the set,
+             or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault();
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.FirstOrDefault(System.String,System.Object[])">
+             Returns the first element of the set that matches the SQL predicate,
+             or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault("Bar = {0}", "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.FirstOrDefault(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Returns the first element of the set that matches the expression,
+             or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.FirstOrDefault(System.String)">
+             Returns the first element of the set that matches the dynamic string
+             expression, or a default value if the set contains no elements.
+            
+             ```cs
+             	var entity = Models.Foo.FirstOrDefault("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Single">
+             Returns the only entity of the set. If the set contains no entities
+             or more than one entity then an exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single();
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Single(System.String,System.Object[])">
+             Returns the only entity of the set that matches the SQL predicate.
+             If the set contains no entities or more than one entity then an
+             exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single("Bar = {0}", "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Single(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Returns the only entity of the set that matches the expression.
+             If the set contains no entities or more than one entity then an
+             exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Single(System.String)">
+             Returns the only entity of the set that matches the dynamic string
+             expression. If the set contains no entities or more than one entity
+             then an exception will be thrown.
+            
+             ```cs
+             	var entity = Models.Foo.Single("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.SingleOrDefault">
+             Returns the only element of the set, or a default value if the set
+             is empty; this method throws an exception if there is more than one
+             element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault();
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.SingleOrDefault(System.String,System.Object[])">
+             Returns the only element of the set that matches the SQL predicate,
+             or a default value if the set is empty; this method throws an
+             exception if there is more than one element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault("Bar = {0}", "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.SingleOrDefault(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+             Returns the only element of the set that matches the expression,
+             or a default value if the set is empty; this method throws an
+             exception if there is more than one element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault(e => e.Bar == "abc");
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.SingleOrDefault(System.String)">
+             Returns the only element of the set that matches the dynamic string
+             expression, or a default value if the set is empty; this method
+             throws an exception if there is more than one element in the set.
+            
+             ```cs
+             	var entity = Models.Foo.SingleOrDefault("e => e.Bar == \"abc\"");
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.Where(System.String,System.Object[])" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.Where(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.Where(System.String)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.Like(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.Like(System.String)" -->
+        <member name="M:Graceful.Query.Linq`1.OrderBy(System.String,System.Object[])">
+             Orders the set based on the provided column list.
+            
+             ```cs
+             	var orderedEntities = Models.Foo.OrderBy("Bar DESC, Baz ASC");
+             ```
+            
+             Or even something like this:
+            
+             ```cs
+             	var orderedEntities = Models.Foo.OrderBy
+             	(
+             		"Bar {0}, Baz {1}",
+             		"DESC",
+             		"ASC"
+             	);
+             ```
+            
+             > NOTE: ASC is the default direction, if not supplied.
+        </member>
+        <member name="M:Graceful.Query.Linq`1.OrderBy(System.Linq.Expressions.Expression{System.Func{`0,System.Object}},Graceful.Query.OrderDirection)">
+             Orders the set based on the expression.
+            
+             ```cs
+             	var orderedEntities = Models.Foo
+             	.OrderBy(e => e.Bar, OrderDirection.DESC)
+             	.OrderBy(e => e.Baz, OrderDirection.ASC);
+             ```
+            
+             > NOTE: ASC is the default direction, if not supplied.
+        </member>
+        <member name="M:Graceful.Query.Linq`1.OrderBy(System.String,Graceful.Query.OrderDirection)">
+             Orders the set based on the dynamic string expression.
+            
+             ```cs
+             	var orderedEntities = Models.Foo
+             	.OrderBy("e => e.Bar", OrderDirection.DESC)
+             	.OrderBy("e => e.Baz", OrderDirection.ASC);
+             ```
+            
+             > NOTE: ASC is the default direction, if not supplied.
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Skip(System.Int32)">
+             Bypasses a specified number of entities in the set
+             and then returns the remaining entities.
+            
+             ```cs
+             	var first10EntitiesIgnored = Models.Foo.Skip(10);
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.Take(System.Int32)">
+             Returns a specified number of contiguous
+             entities from the start of the set.
+            
+             ```cs
+             	var IHave10Entities = Models.Foo.Take(10);
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.ToArray">
+             Returns an array of entities.
+            
+             ```cs
+             	foreach (var entity in Models.Foo.ToArray())
+             	{
+            
+             	}
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.ToList">
+             Returns a List of entities.
+            
+             ```cs
+             	Models.Foo.ToList().ForEach(entity =>
+              {
+            
+              });
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.ToJson">
+             Returns a json serialisation of the entities.
+            
+             ```cs
+             	var json = Models.Foo.ToJson();
+             ```
+        </member>
+        <member name="M:Graceful.Query.Linq`1.UpdateAll(System.String,System.Object[])">
+             Updates enMasse without first loading the entites into memory.
+            
+             ```cs
+             	Models.Foo.UpdateAll("Bar = {0}, Baz = {1}", "abc", 123);
+             ```
+            
+             > NOTE: You can only update the primative columns.
+             > You can not bulk update a relationship by supplying a new entity.
+             > You may however update the relationship foreign key, assuming you
+             > know the name of the foreign key column.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.UpdateAll(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Query.Linq`1.UpdateAll(System.String)" -->
+        <member name="M:Graceful.Query.Linq`1.DeleteAll(System.Boolean)">
+             Deletes enMasse without first loading the entites into memory.
+            
+             ```cs
+             	// soft deletes all Foo's in the table!
+             	Models.Foo.DeleteAll();
+            
+             	// soft deletes all Foo's that have Bar set to Baz
+             	Models.Foo.Where(e => e.Bar == "Baz").DeleteAll();
+            
+             	// hard deletes a Foo with the Id of 56
+             	Models.Foo.Where(e => e.Id == 56).DeleteAll(hardDelete: true);
+             ```
+        </member>
+        <member name="T:Graceful.Query.OrderDirection">
+            Used by the OrderBy methods in Query.Linq
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.Query.SqlId" -->
+        <member name="T:Graceful.Query.SqlTable">
+             Extends on the idea of an SqlId, and provides a fully qualified escaped
+             table name. The cavert though is we need a copy of the Context so we can
+             work out the current database / schema.
+            
+             ```cs
+             	var ctx = new Context("Database=Graceful;");
+             	var table = new SqlTable(ctx, "Foo");
+             	Console.WriteLine(table.Value);
+             	// outputs something like: [Graceful].[dbo].[Foo]
+             ```
+        </member>
+        <member name="M:Graceful.Query.SqlTable.Qualified(Graceful.Context,System.String)">
+             Given a table / view name, this will return the fully qualified name.
+            
+             > TODO: Don't make assumption schema is "dbo".
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.Query.SqlColumn" -->
+        <member name="F:Graceful.Utils.Migrator.DataLossAllowed">
+             When Migrations are run there is the chance that columns already in
+             a table may no longer be needed if the corresponding class property
+             has been removed.
+            
+             By default we will leave these column intact.
+            
+             However in a staging environment you may like to allow these columns
+             to be deleted while the application is under heavy development.
+            
+             ```cs
+             	Graceful.Utils.Migrator.DataLossAllowed = true;
+             ```
+        </member>
+        <member name="F:Graceful.Utils.Migrator.Ctx">
+            A Context for us to use.
+        </member>
+        <member name="T:Graceful.Utils.Migrator.ForeignKey">
+            Simple type to represent a foreign key column that needs to be added.
+        </member>
+        <member name="P:Graceful.Utils.Migrator.ForeignKeys">
+            A list of deferred foreign key columns to add
+            after all tables have been CREATED / UPDATED.
+        </member>
+        <member name="T:Graceful.Utils.Migrator.FkConstraint">
+            Simple type to represent a foreign key contraint.
+        </member>
+        <member name="P:Graceful.Utils.Migrator.FkConstraints">
+            A list of foreign key contraints to add
+            after all tables have been created.
+        </member>
+        <member name="T:Graceful.Utils.Migrator.UniqueConstraint">
+            Simple type to represent a unique column contraint.
+        </member>
+        <member name="P:Graceful.Utils.Migrator.UniqueConstraints">
+            A list of unique column contraints to add
+            after all tables have been created.
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:Graceful.Utils.Migrator.DealtWithRelationships" -->
+        <member name="M:Graceful.Utils.Migrator.#ctor(Graceful.Context)">
+            A valid Graceful Context must be injected here.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.DropAllIndexes">
+             Drops all "GRACEFUL_" created indexes.
+            
+             Any indexes created manually or by Sql Server
+             it's self will not be touched.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.DropForeignKeyContraints">
+             Drops all Foreign Key Contraints.
+            
+             Before migrating we drop all existing foreign key contraints.
+             This is so that we may remove old columns, if DataLossAllowed
+             is set to true. And so we can ensure only relvent contraints
+             exist after the migration has run.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.CreateAllDeferredForeignKeys">
+            All deferred foreign key columns and constraints must be added after
+            all the tables have been created, otherwise we may attempt to add a
+            constraint for a table that does not yet exist.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.CreateUniqueIndexes">
+             Creates Unique Indexes for properties that have the Unique Attribute.
+            
+             Because SQL Server supports an odd "non-standard" UNIQUE contraint
+             where multiple NULL values are not allowed we create our own
+             "Filtered" indexes.
+            
+             see: http://dba.stackexchange.com/questions/80514
+            
+             > NOTE: A strict unique3 index may still be created by supplying
+             > strict=true to the Unique Attribute.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.BuildCreateTableQuery(System.Text.StringBuilder,System.String,System.Collections.Generic.List{System.Reflection.PropertyInfo})">
+            Builds the SQL Query that will be used to CREATE
+            a new table that matches the Model Class.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.BuildAlterTableQuery(System.Text.StringBuilder,System.String,System.Collections.Generic.List{System.Reflection.PropertyInfo})">
+            Builds the SQL Query that will be used to ALTER
+            an existing table to match the Model Class.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.GetColumnType(System.Reflection.PropertyInfo)">
+            Given a property we will return the name of the SqlDbType.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.GetColumnLength(System.Reflection.PropertyInfo)">
+             Given a property we will return the length value that
+             will be appended directly after the SqlDbType name.
+            
+             ie: ```nvarchar(MAX)```
+        </member>
+        <member name="M:Graceful.Utils.Migrator.IsNullableProperty(System.Reflection.PropertyInfo)">
+            Given a property we will work out if the property
+            is allowed to have a null value or not.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.IsUnique(System.Reflection.PropertyInfo)">
+            Given a property work out if the property is set to be unique or not.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.CreatePivotTable(Graceful.Utils.RelationshipDiscoverer.Relation)">
+            When a Many to Many relationship is found, this will first check to
+            see if the Pivot Table already exists and if not we then create the
+            needed Pivot Table to support the relationship.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.UpdatePivotTable(System.Text.StringBuilder,Graceful.Utils.RelationshipDiscoverer.Relation)">
+            Runs when a Many:Many relationship is found and it's possible the
+            pivot table may already exist. ie: Running migrations on an existing
+            database.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.AddFKToFT(Graceful.Utils.RelationshipDiscoverer.Relation)">
+             Adds a new foreign key to the foreign table, that supports a Many:1.
+            
+             > NOTE: This will be deferred until it comes time
+             > to actually create the foreign table.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.UpdateFKToFT(Graceful.Utils.RelationshipDiscoverer.Relation)">
+            Because the creation of the foreign key is defered,
+            the implemenation at this point is exactly the same.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.AddFKToLTOm(System.Text.StringBuilder,Graceful.Utils.RelationshipDiscoverer.Relation)">
+            Adds a new foreign key to the local table, that supports a One:Many.
+        </member>
+        <member name="M:Graceful.Utils.Migrator.AddFKToLTOo(System.Text.StringBuilder,Graceful.Utils.RelationshipDiscoverer.Relation)">
+            Adds a new foreign key to the local table, that supports a 1:1.
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.Utils.RelationshipDiscoverer.Relation" -->
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.Type">
+             We have 4 types of relationships.
+            
+             	- MtoM: A Many to Many relationship.
+            
+             	- MtoO: A Many to One relationship.
+            
+             	- OtoM: A One to Many relationship.
+            
+             	- OtoO: A One to One relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.LocalType">
+            The local type of the relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.ForeignType">
+            The foreign type of the relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.LocalProperty">
+            The local property of the relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.ForeignProperty">
+            The foreign property of the relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.LocalTableName">
+            The local table name of the relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.ForeignTableName">
+            The foreign table name of the relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.LocalTableNameSingular">
+            The singular version of the local table name.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.ForeignTableNameSingular">
+            The singular version of the foreign table name.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.ForeignKeyTableName">
+            Only required for One to One relationships.
+            However for convenience we will still set this for
+            MtoO and OtoM relationships.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.ForeignKeyColumnName">
+            Name of the foreign key column in OtoM and OtoO relationships.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.PivotTableName">
+            The name of the pivot table for a MtoM relationship.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.PivotTableFirstColumnName">
+            The name of the first column in the pivot table.
+        </member>
+        <member name="F:Graceful.Utils.RelationshipDiscoverer.Relation.PivotTableSecondColumnName">
+            The name of the second column in the pivot table.
+        </member>
+        <!-- Badly formed XML comment ignored for member "F:Graceful.Utils.RelationshipDiscoverer.Relation.LinkIdentifier" -->
+        <member name="P:Graceful.Utils.RelationshipDiscoverer.Discovered">
+            This represents the discovered relationships.
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.#ctor(System.Collections.Generic.HashSet{System.Type})">
+            RelationshipDiscoverer Constructor
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.IsManyToMany(System.Reflection.PropertyInfo)">
+            Given a PropertyInfo we will work out if it is a Many to Many
+            relationship. For it to be a Many to Many relationship, both the
+            current TModel and the related TModel must have a List of each
+            others type.
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.IsManyToOne(System.Reflection.PropertyInfo)">
+            Given a PropertyInfo we will work out if it is a Many to One
+            relationship. For it to be a Many to One relationship, the current
+            TModel must have a property that is a List of a foreign type.
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.IsOneToMany(System.Reflection.PropertyInfo)">
+            Given a PropertyInfo we will work out if it is a One to Many
+            relationship. For it to be a One to Many relationship, the current
+            "TModel" must have a property that refers to a single foreign type
+            and the foreign type must have a property that is a List of "TModel".
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.IsOneToOne(System.Reflection.PropertyInfo)">
+            Given a PropertyInfo we will work out if it is a One to One
+            relationship. For it to be a One to One relationship, the current
+            "TModel" must have a property that refers to a single foreign Type.
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.SetTableNames(Graceful.Utils.RelationshipDiscoverer.Relation)">
+            Given a relation, that has had it's local and foreign types set.
+            We will grab the SqlTable Names for both types, and set the table
+            name fields of the relation struct.
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.PivotTableTaken(System.String)">
+            Given a pivot table name we will check to see if it has already
+            been taken by another model. ie: The other side of the relationship.
+        </member>
+        <member name="M:Graceful.Utils.RelationshipDiscoverer.ForeignKeyColumnTaken(System.String,System.String)">
+            Given a table name and a column name for a foreign key
+            we will check to see if it has already been taken or not.
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.GetDBType(System.Type)">
+             Given a CLR Type, this will return the matching SqlDbType.
+            
+             ```cs
+              var sqlDbType = TypeMapper.GetDBType(typeof(string));
+              Console.WriteLine("The next line will say True, I promise :)");
+              Console.WriteLine(sqlDbType == SqlDbType.NVarChar);
+             ```
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.GetDBType(System.Object)">
+             Given a CLR Value, this will return the matching SqlDbType.
+            
+             ```cs
+              var sqlDbType = TypeMapper.GetDBType("hello");
+              Console.WriteLine("The next line will say True, I promise :)");
+              Console.WriteLine(sqlDbType == SqlDbType.NVarChar);
+             ```
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.GetDBType(System.Reflection.PropertyInfo)">
+             Given a PropertyInfo, this will return the property's SqlDbType.
+            
+             ```cs
+              class Foo { public string Bar { get; set; } }
+              var sqlDbType = TypeMapper.GetDBType(typeof(Foo).GetProperty("Bar"));
+              Console.WriteLine("The next line will say True, I promise :)");
+              Console.WriteLine(sqlDbType == SqlDbType.NVarChar);
+             ```
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.GetClrType(System.Data.SqlDbType)">
+             Given a SqlDbType, this will return the equivalent CLR Type.
+            
+             ```cs
+              var clrType = TypeMapper.GetClrType(SqlDbType.NVarChar);
+              Console.WriteLine("The next line will say True, I promise :)");
+              Console.WriteLine(clrType == System.String);
+             ```
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.GetSqlDbTypeFromString(System.String)">
+             Given the string name of an SqlDbType, we return the Enum value.
+            
+             ```cs
+              var sqlDbType = TypeMapper.GetSqlDbTypeFromString("nvarchar");
+              Console.WriteLine("The next line will say True, I promise :)");
+              Console.WriteLine(sqlDbType == SqlDbType.NVarChar);
+             ```
+        </member>
+        <member name="F:Graceful.Utils.TypeMapper.ClrTypes">
+            Caches the list created by IsClrType.
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.IsClrType(System.Type)">
+             Given a Type, we will attempt to work out if the type is a built in
+             simple primative type, such as String, Decimal, Boolean, etc.
+            
+             ```cs
+              if (TypeMapper.IsClrType(typeof(string)))
+              {
+              	Console.WriteLine("Yes, string is a built in Clr Type.");
+              }
+            
+             	if (!TypeMapper.IsClrType(typeof(Foo)))
+             	{
+             		Console.WriteLine("No, Foo is a user defined class.");
+             	}
+             ```
+            
+             > NOTE: Neither String nor Decimal are primitives so using:
+             > type.IsPrimitive, does not work in all cases.
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.IsClrType(System.Object)">
+             Given a Value, we will attempt to work out if the type is a built in
+             simple primative type, such as String, Decimal, Boolean...
+            
+             ```cs
+              if (TypeMapper.IsClrType("hello"))
+              {
+              	Console.WriteLine("Yes, string is a built in Clr Type.");
+              }
+            
+             	if (!TypeMapper.IsClrType(new Foo()))
+             	{
+             		Console.WriteLine("No, Foo is a user defined class.");
+             	}
+             ```
+            
+             > NOTE: Neither String nor Decimal are primitives so using:
+             > type.IsPrimitive, does not work in all cases.
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsClrType(System.Reflection.PropertyInfo)" -->
+        <member name="M:Graceful.Utils.TypeMapper.IsNullable(System.Type)">
+             Given a type, we will tell you if it is a nullable.
+            
+             ```cs
+             	int? Id;
+              if (TypeMapper.IsNullable(typeof(Id))
+              {
+              	Console.WriteLine("Yep, its a nullable int.");
+              }
+             ```
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.IsNullable``1(``0)">
+             Given a value, we will tell you if it is a nullable.
+            
+             ```cs
+             	int? Id = 0;
+              if (TypeMapper.IsNullable(Id)
+              {
+              	Console.WriteLine("Yep, its a nullable int.");
+              }
+             ```
+        </member>
+        <member name="M:Graceful.Utils.TypeMapper.IsNullable(System.Reflection.PropertyInfo)">
+             Given a PropertyInfo instance, we will tell you if the
+             property type is nullable.
+            
+             ```cs
+              class Foo
+              {
+              	public int? Bar { get; set; }
+              }
+            
+              if (TypeMapper.IsNullable(typeof(Foo).GetProperty("Bar"))
+              {
+              	Console.WriteLine("Yep, its a nullable int.");
+              }
+             ```
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsEntity(System.Type)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsEntity(System.Object)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsEntity(System.Reflection.PropertyInfo)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsList(System.Type)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsList(System.Object)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsList(System.Reflection.PropertyInfo)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsListOfEntities(System.Type)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsListOfEntities(System.Object)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsListOfEntities(System.Reflection.PropertyInfo)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsListOfEntities(System.Type,System.Type)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsListOfEntities(System.Object,System.Type)" -->
+        <!-- Badly formed XML comment ignored for member "M:Graceful.Utils.TypeMapper.IsListOfEntities(System.Reflection.PropertyInfo,System.Type)" -->
+        <!-- Badly formed XML comment ignored for member "T:Graceful.Utils.Visitors.AssignmentsConverter" -->
+        <member name="P:Graceful.Utils.Visitors.AssignmentsConverter.Sql">
+            The portion of the SQL query that will come after a SET clause.
+        </member>
+        <member name="P:Graceful.Utils.Visitors.AssignmentsConverter.Parameters">
+            A list of parameter values that go along with our sql query segment.
+        </member>
+        <member name="F:Graceful.Utils.Visitors.AssignmentsConverter.blockWriting">
+            When we recurse into a MemberExpression, looking for a
+            ConstantExpression, we do not want to write anything to
+            the sql StringBuilder.
+        </member>
+        <member name="F:Graceful.Utils.Visitors.AssignmentsConverter.value">
+            In some cases, we need to save the value we get from a MemberInfo
+            and save it for later use, when we are at the correct
+            MemberExpression.
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.Utils.Visitors.LikeConverter" -->
+        <member name="P:Graceful.Utils.Visitors.LikeConverter.Sql">
+            The portion of the SQL query that will come after a WHERE clause.
+        </member>
+        <member name="P:Graceful.Utils.Visitors.LikeConverter.Parameters">
+            A list of parameter values that go along with our sql query segment.
+        </member>
+        <member name="F:Graceful.Utils.Visitors.LikeConverter.blockWriting">
+            When we recurse into a MemberExpression, looking for a
+            ConstantExpression, we do not want to write anything to
+            the sql StringBuilder.
+        </member>
+        <member name="F:Graceful.Utils.Visitors.LikeConverter.value">
+            In some cases, we need to save the value we get from a MemberInfo
+            and save it for later use, when we are at the correct
+            MemberExpression.
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Graceful.Utils.Visitors.PredicateConverter" -->
+        <member name="P:Graceful.Utils.Visitors.PredicateConverter.Sql">
+            The portion of the SQL query that will come after a WHERE clause.
+        </member>
+        <member name="P:Graceful.Utils.Visitors.PredicateConverter.Parameters">
+            A list of parameter values that go along with our sql query segment.
+        </member>
+        <member name="F:Graceful.Utils.Visitors.PredicateConverter.blockWriting">
+            When we recurse into a MemberExpression, looking for a
+            ConstantExpression, we do not want to write anything to
+            the sql StringBuilder.
+        </member>
+        <member name="F:Graceful.Utils.Visitors.PredicateConverter.value">
+            In some cases, we need to save the value we get from a MemberInfo
+            and save it for later use, when we are at the correct
+            MemberExpression.
+        </member>
+    </members>
+</doc>

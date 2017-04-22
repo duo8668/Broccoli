@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Graceful.Tests</RootNamespace>
+    <AssemblyName>Graceful.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Inflector">
+      <HintPath>..\packages\Inflector.1.0.0.0\lib\net45\Inflector.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json.Schema">
+      <HintPath>..\packages\Newtonsoft.Json.Schema.1.0.10\lib\net45\Newtonsoft.Json.Schema.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Linq.Dynamic">
+      <HintPath>..\packages\System.Linq.Dynamic.1.0.4\lib\net40\System.Linq.Dynamic.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DbTests.cs" />
+    <Compile Include="Dynamic\ExpressionBuilder.cs" />
+    <Compile Include="Extensions\ExtensionMethodTests.cs" />
+    <Compile Include="Models\CustomContext.cs" />
+    <Compile Include="Models\CustomTableName.cs" />
+    <Compile Include="Models\EqualityExpressionTest.cs" />
+    <Compile Include="Models\LazyManyToOneTest.cs" />
+    <Compile Include="Models\LazyOneToOneTest.cs" />
+    <Compile Include="Models\MultipleManyToManyTest.cs" />
+    <Compile Include="Models\MultipleManyToOneTest.cs" />
+    <Compile Include="Models\MultipleOneToOneTest.cs" />
+    <Compile Include="Models\SimpleManyToManyTest.cs" />
+    <Compile Include="Models\SimpleManyToOneTest.cs" />
+    <Compile Include="Models\SimpleOneToOneTest.cs" />
+    <Compile Include="Models\User.cs" />
+    <Compile Include="ModelTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Query\Builder.cs" />
+    <Compile Include="Query\Helper.cs" />
+    <Compile Include="Query\Types.cs" />
+    <Compile Include="TestHelpers.cs" />
+    <Compile Include="Utils\RelationshipDiscovererTests.cs" />
+    <Compile Include="Utils\TypeMapperTests.cs" />
+    <Compile Include="Utils\Visitors\AssignmentsConverterTests.cs" />
+    <Compile Include="Utils\Visitors\LikeConverterTests.cs" />
+    <Compile Include="Utils\Visitors\PredicateConverterTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Broccoli.Graceful\Broccoli.Graceful.csproj">
+      <Project>{5a4b8dd6-73a9-4065-8c30-ae56e01fffaf}</Project>
+      <Name>Broccoli.Graceful</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="project.json" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

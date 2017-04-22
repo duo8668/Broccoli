@@ -1,0 +1,8 @@
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Bin\NewLife.Core.dll.config
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Bin\NewLife.Core.XML
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Bin\NewLife.Core.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Bin\NewLife.Core.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Windows.SerialPortList.resources
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.csproj.GenerateResource.Cache
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.pdb

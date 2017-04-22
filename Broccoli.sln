@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Broccoli", "Broccoli\Broccoli.csproj", "{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Broccoli.Core", "Broccoli.Core\Broccoli.Core.csproj", "{5302BA33-52DD-405F-B973-F511E50F4741}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Broccoli.Graceful", "Broccoli.Graceful\Broccoli.Graceful.csproj", "{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Broccoli.TestGraceful", "Broccoli.TestGraceful\Broccoli.TestGraceful.csproj", "{ECAB83E1-15AE-4366-B91D-1546B023ED55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Graceful.Tests", "Graceful.Tests\Graceful.Tests.csproj", "{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		NET4|Any CPU = NET4|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}.NET4|Any CPU.ActiveCfg = Release|Any CPU
+		{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}.NET4|Any CPU.Build.0 = Release|Any CPU
+		{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E00B80DA-DB1A-4207-AAE8-1C9358B723B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5302BA33-52DD-405F-B973-F511E50F4741}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5302BA33-52DD-405F-B973-F511E50F4741}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5302BA33-52DD-405F-B973-F511E50F4741}.NET4|Any CPU.ActiveCfg = Release|Any CPU
+		{5302BA33-52DD-405F-B973-F511E50F4741}.NET4|Any CPU.Build.0 = Release|Any CPU
+		{5302BA33-52DD-405F-B973-F511E50F4741}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5302BA33-52DD-405F-B973-F511E50F4741}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}.NET4|Any CPU.ActiveCfg = Release|Any CPU
+		{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}.NET4|Any CPU.Build.0 = Release|Any CPU
+		{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A4B8DD6-73A9-4065-8C30-AE56E01FFFAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECAB83E1-15AE-4366-B91D-1546B023ED55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECAB83E1-15AE-4366-B91D-1546B023ED55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECAB83E1-15AE-4366-B91D-1546B023ED55}.NET4|Any CPU.ActiveCfg = Release|Any CPU
+		{ECAB83E1-15AE-4366-B91D-1546B023ED55}.NET4|Any CPU.Build.0 = Release|Any CPU
+		{ECAB83E1-15AE-4366-B91D-1546B023ED55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECAB83E1-15AE-4366-B91D-1546B023ED55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}.NET4|Any CPU.ActiveCfg = Release|Any CPU
+		{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}.NET4|Any CPU.Build.0 = Release|Any CPU
+		{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9B6D040-3BC2-4D96-8CFD-890AD1D5DDB8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

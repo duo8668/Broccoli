@@ -60,7 +60,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Database\Attributes\SqlTableNameAttribute.cs" />
+    <Compile Include="Database\Context.cs" />
+    <Compile Include="Database\Eloquent\IModel.cs" />
     <Compile Include="Database\Eloquent\Model.cs" />
+    <Compile Include="Database\Eloquent\ModelBase.cs" />
+    <Compile Include="Entities\Invoice.cs" />
     <Compile Include="Models\Generated\Database.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

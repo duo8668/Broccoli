@@ -1,1 +1,12 @@
 c:\users\maousheng\documents\visual studio 2015\Projects\Broccoli\Broccoli\bin\Debug\Broccoli.exe.config
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\Broccoli.exe
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\Broccoli.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\Broccoli.Core.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\Broccoli.Core.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\Broccoli.Core.dll.config
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.csprojResolveAssemblyReference.cache
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.Form1.resources
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.Properties.Resources.resources
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.csproj.GenerateResource.Cache
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.exe
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.pdb

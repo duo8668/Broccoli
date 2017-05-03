@@ -10,42 +10,29 @@ using System.Threading.Tasks;
 
 namespace Broccoli.Core.Database.Eloquent
 {
-    public class Model<TModel>
+    /*
+     * The challenge part of the Model is about the relationship discoverer.
+     * Ideally, we should save the discovered relationship but we might end up recursive calls.
+     * We need to handle this case.
+     */
+    [PetaPoco.PrimaryKey("id")]
+    public class Model<TModel> : ModelBase
     {
-        protected PetaPoco.Database dbCtx;
+        protected static PetaPoco.Database dbCtx;
 
-        protected string primaryKey { get; set; }
-
-        private string _SqlTableName;
-
-        protected virtual string SqlTableName
+        public static List<TModel> FindAll(string primaryKey, bool withTrashed = false)
         {
-            get
+            var _sql = PetaPoco.Sql.Builder
+                .Select("*");
+            if (!withTrashed)
             {
-                if (_SqlTableName == null)
-                {
-                    try
-                    {
-                        // First lets see if the model has it's own table name.
-                        _SqlTableName = this.GetType()
-                           .GetCustomAttribute<SqlTableNameAttribute>(false)
-                           .Value;
-                    }
-                    catch (NullReferenceException)
-                    {
-                        // Calculate the table name based on the class name.
-                        var typeString = this.GetType().ToString();
-                        var typeParts = typeString.Split('.');
-                        _SqlTableName = typeParts[typeParts.Length - 1];
-                        _SqlTableName = _SqlTableName.Pluralize();
-                    }
-                }
-
-                return _SqlTableName;
+                _sql = _sql.Where("date_created IS NOT NULL");
             }
+
+            return dbCtx.Fetch<TModel>(_sql);
         }
 
-        public TModel Find(string primaryKey, bool withTrashed = false)
+        public static TModel Find(string primaryKey, bool withTrashed = false)
         {
             var _sql = PetaPoco.Sql.Builder
                 .Select("*")
@@ -58,16 +45,11 @@ namespace Broccoli.Core.Database.Eloquent
             return dbCtx.First<TModel>(_sql);
         }
 
-        [DataType(DataType.Text)]
-        public string RecordInfo { get; set; }
+        public static TModel Save(TModel _data)
+        {
+            //* check if data exists, if not exists then update
 
-        [DataType(DataType.DateTime)]
-        public DateTime CreatedAt { get; set; }
-
-        [DataType(DataType.DateTime)]
-        public DateTime ModifiedAt { get; set; }
-
-        [DataType(DataType.DateTime)]
-        public DateTime? DeletedAt { get; set; }
+            return default(TModel);
+        }
     }
 }

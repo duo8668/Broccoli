@@ -48,6 +48,7 @@ namespace Broccoli.Core.Facade
          */
         public static void Initialize()
         {
+            /*
             _dbConnPool = new ConcurrentDictionary<string, ConcurrentQueue<PetaPoco.IDatabase>>();
 
             //* Here will need to ensure another hash key collection array to contains all the md5 hash value
@@ -70,11 +71,12 @@ namespace Broccoli.Core.Facade
                                   m.InflectColumnName = (inflector, cn) => inflector.Underscore(cn);
                               })
                               .Create();
+                    db.KeepConnectionAlive = true;
                     _connQueue.Enqueue(db);
                 }
                 _dbConnPool.TryAdd(connString.Name, _connQueue);
             }
-
+            */
             ReflectionAssignModelsConnectionName();
             ReflectionAssignModelsTableName();
         }
@@ -123,38 +125,27 @@ namespace Broccoli.Core.Facade
         protected static void ReflectionAssignModelsConnectionName()
         {
             var schemaConfigs = DbSchemaConfiguration.Deserialize("ModelSchema.config");
-            if (schemaConfigs.Count() > 0)
+            var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
+            GetAllModels().ForEach(model =>
             {
-                GetAllModels().ForEach(model =>
-              {
-                  if (schemaConfigs.ContainsKey(model.Name))
-                  { 
-                      var schemaConfig = schemaConfigs[model.Name];
-                      var field = model.GetField("ConnectionName", BindingFlags.Static
-                        | BindingFlags.FlattenHierarchy
-                        | BindingFlags.Public
-                        | BindingFlags.NonPublic);
-                      field.SetValue(null, schemaConfig.DatabaseConnectionName);
-                  }
-              });
-            }
+                var _name = defaultDbConnection;
+                if (schemaConfigs.ContainsKey(model.Name))
+                {
+                    var schemaConfig = schemaConfigs[model.Name];
+                    _name = schemaConfig.DatabaseConnectionName;
+                }
+
+                var field = model.GetField("ConnectionName", BindingFlags.Static
+                   | BindingFlags.FlattenHierarchy
+                   | BindingFlags.Public
+                   | BindingFlags.NonPublic);
+                field.SetValue(null, _name);
+            });
         }
         //*
-        public static PetaPoco.IDatabase GetDatabaseConnection(string provider)
+        public static PetaPoco.IDatabase GetDatabaseConnection(string connectionStringName)
         {
-            ConcurrentQueue<PetaPoco.IDatabase> tmp;
-            PetaPoco.IDatabase tmpDb = null;
-            if (_dbConnPool != null)
-            {
-                if (_dbConnPool.TryGetValue(provider, out tmp))
-                {
-                    if (tmp.TryDequeue(out tmpDb))
-                    {
-
-                    }
-                }
-            }
-            return tmpDb;
+            return new PetaPoco.Database(connectionStringName: connectionStringName);
         }
 
         public static void ReturnDatabaseConnection(string provider, PetaPoco.IDatabase db)

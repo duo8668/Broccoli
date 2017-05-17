@@ -3122,6 +3122,8 @@ namespace PetaPoco
         /// </returns>
         IMapper DefaultMapper { get; }
 
+        bool KeepConnectionAlive { get; set; }
+
         /// <summary>
         ///     Gets the SQL of the last executed statement
         /// </summary>

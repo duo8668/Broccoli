@@ -59,12 +59,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\DbSchemaConfiguration.cs" />
+    <Compile Include="Configuration\ModelSchemaConfig.cs" />
+    <Compile Include="Database\Attributes\ConnectionStringAttribute.cs" />
     <Compile Include="Database\Attributes\SqlTableNameAttribute.cs" />
     <Compile Include="Database\Context.cs" />
     <Compile Include="Database\Eloquent\IModel.cs" />
+    <Compile Include="Database\Eloquent\IModelBase.cs" />
     <Compile Include="Database\Eloquent\Model.cs" />
     <Compile Include="Database\Eloquent\ModelBase.cs" />
+    <Compile Include="Entities\Customer.cs" />
     <Compile Include="Entities\Invoice.cs" />
+    <Compile Include="Extensions\ExtensionMethods.cs" />
+    <Compile Include="Facade\DbFacade.cs" />
+    <Compile Include="Facade\Facade.cs" />
+    <Compile Include="Facade\ModelFacade.cs" />
+    <Compile Include="Factory\ModelFactory.cs" />
     <Compile Include="Models\Generated\Database.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -88,6 +98,7 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

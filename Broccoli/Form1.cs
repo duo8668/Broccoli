@@ -1,7 +1,9 @@
 ﻿using Broccoli.Core.Entities;
+using Broccoli.Core.Facade;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Drawing;
 using System.Linq;
@@ -20,6 +22,7 @@ namespace Broccoli
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            /*
             //Invoice inv = Invoice.Find("1");
             long firstLong = DateTime.Now.Ticks;
             label1.Text = "" + firstLong;
@@ -28,6 +31,39 @@ namespace Broccoli
             label2.Text = "" + secondLong;
             long longDiff = secondLong - firstLong;
             label3.Text = string.Format("{0}   {1}：{2}", longDiff, (new DateTime(longDiff)).Second, (new DateTime(longDiff)).Ticks);
+
+            var connStrings = System.Configuration.ConfigurationManager.ConnectionStrings;
+
+            foreach (ConnectionStringSettings connString in connStrings)
+            {
+
+            }
+            */
+            DbFacade.Initialize();
+            ModelFacade.LoadClassConfig();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Invoice inv = Invoice.Find(1);
+            var invs = Invoice.QueryAll();
+
+            Parallel.ForEach(invs, (iiiiii) =>
+            {
+
+            });
+
+            label1.Text = inv.InvoiceNum;
+            label2.Text = inv.ModifiedAt.ToShortDateString();
+            if (inv.InvoiceDateTime.HasValue)
+            {
+                label3.Text = inv.InvoiceDateTime.Value.ToShortDateString();
+            }
+            else
+            {
+                label3.Text = "--------------------------";
+            }
+
         }
     }
 }

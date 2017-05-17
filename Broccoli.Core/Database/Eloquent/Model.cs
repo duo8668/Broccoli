@@ -1,4 +1,5 @@
 ﻿using Broccoli.Core.Database.Attributes;
+using Broccoli.Core.Facade;
 using Inflector;
 using System;
 using System.Collections.Generic;
@@ -10,39 +11,69 @@ using System.Threading.Tasks;
 
 namespace Broccoli.Core.Database.Eloquent
 {
+    public class Model : ModelBase
+    {
+
+    }
     /*
      * The challenge part of the Model is about the relationship discoverer.
      * Ideally, we should save the discovered relationship but we might end up recursive calls.
      * We need to handle this case.
      */
     [PetaPoco.PrimaryKey("id")]
-    public class Model<TModel> : ModelBase
+    public class Model<TModel> : Model
     {
-        protected static PetaPoco.Database dbCtx;
+        public static TModel Find(object primaryKey, bool withTrashed = false)
+        {
+            var priKey = Convert.ChangeType(primaryKey, typeof(int));
+            var _sql = PetaPoco.Sql.Builder
+                .Select("*")
+                .From(TableName)
+                .Where("id = @0 ", primaryKey);
+            if (!withTrashed)
+            {
+                _sql = _sql.Where("created_at IS NOT NULL ");
+            }
 
-        public static List<TModel> FindAll(string primaryKey, bool withTrashed = false)
+            return DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(_sql);
+        }
+
+        public static List<TModel> FindAll(bool withTrashed = false)
+        {
+            return QueryAll(withTrashed).ToList();
+        }
+
+        public static IEnumerable<TModel> QueryAll(bool withTrashed = false)
+        {
+            var _sql = PetaPoco.Sql.Builder
+                 .Select("*")
+                .From(TableName);
+            if (!withTrashed)
+            {
+                _sql = _sql.Where("created_at IS NOT NULL ");
+            }
+
+            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(_sql);
+        }
+
+        public static List<TModel> FindPage(long page, long itemsPerPage, bool withTrashed = false)
         {
             var _sql = PetaPoco.Sql.Builder
                 .Select("*");
             if (!withTrashed)
             {
-                _sql = _sql.Where("date_created IS NOT NULL");
+                _sql = _sql.Where("date_created IS NOT NULL ");
             }
-
-            return dbCtx.Fetch<TModel>(_sql);
+            //(long page, long itemsPerPage, string sqlCount, object[] countArgs, string sqlPage, object[] pageArgs)
+            return DbFacade.GetDatabaseConnection("broccoli_db").Page<TModel>(page, itemsPerPage, _sql, null).Items;
         }
 
-        public static TModel Find(string primaryKey, bool withTrashed = false)
-        {
-            var _sql = PetaPoco.Sql.Builder
-                .Select("*")
-                .Where("id = @0", primaryKey);
-            if (!withTrashed)
-            {
-                _sql = _sql.Where("date_created IS NOT NULL");
-            }
 
-            return dbCtx.First<TModel>(_sql);
+        public static List<T> Get<T>()
+        {
+            //* check if data exists, if not exists then update
+
+            return null;
         }
 
         public static TModel Save(TModel _data)

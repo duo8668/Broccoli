@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 namespace Broccoli.Core.Database.Eloquent
 {
     public interface IModelBase
-    {
-        DateTime created_at { get; set; }
-        DateTime modified_at { get; set; }
-        DateTime? deleted_at { get; set; }
+    { 
+        string RecordInfo { get; set; }         
+        DateTime CreatedAt { get; set; }         
+        DateTime ModifiedAt { get; set; }         
+        DateTime? DeletedAt { get; set; }         
     }
 }

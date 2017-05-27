@@ -381,7 +381,10 @@ namespace Graceful.Utils
 
             // Get all foreign properties that are of the localType.
             var foreignProps = Model.Dynamic(relation.ForeignType).MappedProps
-            .Where(fp => fp.PropertyType == relation.LocalType).ToList();
+            .Where(
+                fp => 
+                fp.PropertyType == relation.LocalType
+                ).ToList();
 
             // If we can't find any matching properties on the foreign
             // side well we don't have a Many to One relationship.

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Graceful.Dynamic;
+using System.Configuration;
 
 namespace Broccoli.TestGraceful
 {
@@ -20,19 +21,16 @@ namespace Broccoli.TestGraceful
 
         private void button1_Click(object sender, EventArgs e)
         {
-            var brad = new Person
-            {
-                Name = "Brad Jones",
-                Age = 27,
-                HomeAddress = new Address
-                {
-                    StreetNo = 123,
-                    StreetName = "Fake St",
-                    City = "Virtual Land"
-                }
-            };
 
-            brad.Save();
+            var brad = BioBill.Where(eee => eee.BillNumber == "B102010000003", true).First();
+
+            var dtls = brad.BioBillDetails;
+            button1.Text = "dddddddddddddddd";
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            Graceful.Context.Connect(ConfigurationManager.ConnectionStrings["BBranch101"].ConnectionString);
         }
     }
 }

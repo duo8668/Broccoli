@@ -1,6 +1,8 @@
 ﻿using Broccoli.Core.Configuration;
 using Broccoli.Core.Database.Eloquent;
+using Broccoli.Core.Database.Utils;
 using Broccoli.Core.Extensions;
+using Inflector;
 using PetaPoco;
 using System;
 using System.Collections.Concurrent;
@@ -15,72 +17,18 @@ namespace Broccoli.Core.Facade
 {
     public class DbFacade : Facade
     {
-        private static int _maxConnection = 100;
-        private static ConcurrentDictionary<string, ConcurrentQueue<PetaPoco.IDatabase>> _dbConnPool;
         private static HashSet<Type> _AllModels;
-
-        /*
-         * 
-         */
-        public static int GetAvailableConnections(string provider)
-        {
-            if (_dbConnPool != null)
-            {
-                ConcurrentQueue<PetaPoco.IDatabase> tmp;
-                if (_dbConnPool.TryGetValue(provider, out tmp))
-                {
-                    return tmp.Count();
-                }
-            }
-            return 0;
-        }
-
-        /*
-         * 
-         */
-        public static bool HasAvailableConnection(string provider)
-        {
-            return GetAvailableConnections(provider) > 0;
-        }
 
         /*
          *
          */
         public static void Initialize()
         {
-            /*
-            _dbConnPool = new ConcurrentDictionary<string, ConcurrentQueue<PetaPoco.IDatabase>>();
-
-            //* Here will need to ensure another hash key collection array to contains all the md5 hash value
-            //* The key here will update to the Model's DB HashKey connection and there after, avaiable resources will be retrieved through here
-            //* This given flexibility of different database required by diff model in future
-            var connStrings = ConfigurationManager.ConnectionStrings;
-
-            foreach (ConnectionStringSettings connString in connStrings)
-            {
-                var _connQueue = new ConcurrentQueue<PetaPoco.IDatabase>();
-                for (int i = 0; i < _maxConnection; i++)
-                {
-                    var db = DatabaseConfiguration.Build()
-                              .UsingConnectionStringName(connString.Name)
-                              .UsingDefaultMapper<ConventionMapper>(m =>
-                              {
-                                  // Produces order_line
-                                  m.InflectTableName = (inflector, tn) => inflector.Underscore(tn);
-                                  // Produces order_line_id
-                                  m.InflectColumnName = (inflector, cn) => inflector.Underscore(cn);
-                              })
-                              .Create();
-                    db.KeepConnectionAlive = true;
-                    _connQueue.Enqueue(db);
-                }
-                _dbConnPool.TryAdd(connString.Name, _connQueue);
-            }
-            */
+            ForeignKeyGenerator.InitGenerator("__");
             ReflectionAssignModelsConnectionName();
             ReflectionAssignModelsTableName();
+            ReflectionAssignGenerators();
         }
-
 
         public static HashSet<Type> GetAllModels()
         {
@@ -91,13 +39,47 @@ namespace Broccoli.Core.Facade
             AppDomain.CurrentDomain.GetAssemblies().ToList().ForEach(assembly =>
             {
                 assembly.GetTypes()
-                .Where(type => type.IsSubclassOf(typeof(Model)))
+                .Where(type => type.IsSubclassOf(typeof(ModelBase)))
                 .Where(type => type.IsPublic)
                 .Where(type => !type.ContainsGenericParameters)
                 .ToList().ForEach(type => _AllModels.Add(type));
             });
 
             return _AllModels;
+        }
+
+        public static Type GetModel(string modelName)
+        {
+            modelName = modelName.ToLower();
+
+            return GetAllModels().Single(model =>
+            {
+                var modelNameToCheck = model.ToString().ToLower();
+
+                // Do we have a complete full namespace match
+                if (modelNameToCheck == modelName)
+                {
+                    return true;
+                }
+                else
+                {
+                    // Check for a class name match
+                    var typeParts = modelNameToCheck.Split('.');
+                    var className = typeParts[typeParts.Length - 1];
+                    if (className == modelName)
+                    {
+                        return true;
+                    }
+
+                    // We will also check for the pluralized version
+                    else if (className.Pluralize() == modelName)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
         }
 
         protected static void ReflectionAssignModelsTableName()
@@ -142,23 +124,26 @@ namespace Broccoli.Core.Facade
                 field.SetValue(null, _name);
             });
         }
+
+        protected static void ReflectionAssignGenerators()
+        {
+            /*
+            ForeignKeyGenerator fkg = new ForeignKeyGenerator();
+          
+            GetAllModels().ForEach(model =>
+            {
+                var field = model.GetField("_foreignKeyGenerator", BindingFlags.FlattenHierarchy
+                  | BindingFlags.Instance
+                  | BindingFlags.NonPublic);
+                field.SetValue(null, fkg);
+                
+            });
+        */
+        }
         //*
         public static PetaPoco.IDatabase GetDatabaseConnection(string connectionStringName)
         {
             return new PetaPoco.Database(connectionStringName: connectionStringName);
         }
-
-        public static void ReturnDatabaseConnection(string provider, PetaPoco.IDatabase db)
-        {
-            ConcurrentQueue<PetaPoco.IDatabase> tmp;
-            if (_dbConnPool != null)
-            {
-                if (_dbConnPool.TryGetValue(provider, out tmp))
-                {
-                    tmp.Enqueue(db);
-                }
-            }
-        }
-
     }
 }

@@ -45,12 +45,20 @@ namespace Broccoli
 
         private void button1_Click(object sender, EventArgs e)
         {
-            Invoice inv = Invoice.Find(1);
+            var from = DateTime.Parse("2017-05-06");
+            Invoice search = new Invoice();
+            Invoice inv = Invoice.Find("invoice_num=@0", false, "INV-222222");
             var invs = Invoice.QueryAll();
 
             Parallel.ForEach(invs, (iiiiii) =>
             {
+                //var custs = iiiiii.Customers;
+                var cc = iiiiii.hasMany<Customer>();
 
+                foreach(var cust in cc)
+                {
+
+                }
             });
 
             label1.Text = inv.InvoiceNum;

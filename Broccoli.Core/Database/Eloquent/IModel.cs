@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace Broccoli.Core.Database.Eloquent
 {
-    interface IModel<TModel>
+    interface IModel
+    { 
+    }
+    interface IModel<TModel>: IModel
     {
         TModel Find(string primaryKey, bool withTrashed = false);
     }

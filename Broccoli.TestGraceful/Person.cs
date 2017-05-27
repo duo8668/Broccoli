@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Broccoli.TestGraceful
 {
+    /*
     public class Person : Graceful.Model<Person>
     {
         public string Name { get { return Get<string>(); } set { Set(value); } }
@@ -44,5 +45,5 @@ namespace Broccoli.TestGraceful
         public IList<Person> CarPersons { get { return Get<IList<Person>>(); } set { Set(value); } }
         public IList<Person> ComputerPersons { get { return Get<IList<Person>>(); } set { Set(value); } }
     }
-
+    */
 }

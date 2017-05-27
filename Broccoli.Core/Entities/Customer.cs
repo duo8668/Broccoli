@@ -11,10 +11,10 @@ namespace Broccoli.Core.Entities
     [PetaPoco.ExplicitColumns]
     public class Customer : Model<Customer>
     {
-        [PetaPoco.Column("cust_name")]
-        public string CustomerName { get; set; }
-
-        [PetaPoco.Column("cust_firstname")]
+        [PetaPoco.Column("firstname")]
         public string FirstName { get; set; }
+
+        [PetaPoco.Column("lastname")]
+        public string LastName { get; set; }
     }
 }

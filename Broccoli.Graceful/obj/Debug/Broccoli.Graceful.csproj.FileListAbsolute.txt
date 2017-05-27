@@ -8,3 +8,4 @@ C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Grace
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Graceful\bin\Debug\Newtonsoft.Json.Schema.xml
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Graceful\obj\Debug\Broccoli.Graceful.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Graceful\obj\Debug\Broccoli.Graceful.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Graceful\obj\Debug\Broccoli.Graceful.csprojResolveAssemblyReference.cache

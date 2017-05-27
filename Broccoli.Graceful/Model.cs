@@ -1086,7 +1086,7 @@ namespace Graceful
             // from our discovered list or from the database.
             if (!loadFromDiscovered || !loadFromDb)
             {
-                return default(T);
+               // return default(T);
             }
 
             // Lets see if the property maps to a discovered relationship.
@@ -1359,10 +1359,10 @@ namespace Graceful
             // entity or entities from our discovered list, then the last place
             // to look is obviously the database. However if we ourselves do not
             // have an Id then we can not possibly have any related entities.
-            if (!this.PropertyBag.ContainsKey("Id") || !this.Hydrated)
-            {
-                return default(T);
-            }
+           // if (!this.PropertyBag.ContainsKey("Id") || !this.Hydrated)
+           // {
+                //return default(T);
+           // }
 
             switch (relation.Type)
             {
@@ -1452,8 +1452,9 @@ namespace Graceful
                     var query = Db.Qb
                     .SELECT("*")
                     .FROM(relation.ForeignTableName)
-                    .WHERE(relation.ForeignKeyColumnName, this.Id)
-                    .WHERE("[DeletedAt] IS NULL");
+                    .WHERE("BillNumber", "B102010000003")
+                    //.WHERE("[DeletedAt] IS NULL")
+                    ;
 
                     List<Dictionary<string, object>> records;
                     var queryHash = query.Hash;

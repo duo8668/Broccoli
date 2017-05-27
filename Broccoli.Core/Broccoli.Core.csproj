@@ -63,11 +63,14 @@
     <Compile Include="Configuration\ModelSchemaConfig.cs" />
     <Compile Include="Database\Attributes\ConnectionStringAttribute.cs" />
     <Compile Include="Database\Attributes\SqlTableNameAttribute.cs" />
+    <Compile Include="Database\Builder\EspressionBuilder.cs" />
     <Compile Include="Database\Context.cs" />
+    <Compile Include="Database\Dynamic\Model.cs" />
     <Compile Include="Database\Eloquent\IModel.cs" />
     <Compile Include="Database\Eloquent\IModelBase.cs" />
     <Compile Include="Database\Eloquent\Model.cs" />
     <Compile Include="Database\Eloquent\ModelBase.cs" />
+    <Compile Include="Database\Utils\ForeignKeyGenerator.cs" />
     <Compile Include="Entities\Customer.cs" />
     <Compile Include="Entities\Invoice.cs" />
     <Compile Include="Extensions\ExtensionMethods.cs" />
@@ -82,6 +85,8 @@
     </Compile>
     <Compile Include="Models\PetaPoco.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\Bindable.cs" />
+    <Compile Include="Utils\TypeMapper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

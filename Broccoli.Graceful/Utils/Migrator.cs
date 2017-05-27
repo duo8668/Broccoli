@@ -179,7 +179,7 @@ namespace Graceful.Utils
 
                 // Grab the table name of the model.
                 var tableName = Model.Dynamic(model).SqlTableName;
-
+               
                 // Grab the models mapped properties.
                 var mappedProps = Model.Dynamic(model).MappedProps;
 

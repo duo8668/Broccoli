@@ -8,17 +8,27 @@ using System.Threading.Tasks;
 
 namespace Broccoli.Core.Entities
 {
-    [PetaPoco.TableName("sales_invoice")]
+    [PetaPoco.TableName("sales__invoice")]
     [PetaPoco.ExplicitColumns]
     public class Invoice : Model<Invoice>
-    { 
+    {
         public Invoice()
         {
 
         }
 
         [PetaPoco.Column("invoice_num")]
-        public string InvoiceNum { get; set; }
+        public string InvoiceNum
+        {
+            get
+            {
+                return Get<string>();
+            }
+            set
+            {
+                Set<string>(value);
+            }
+        }
         [PetaPoco.Column("invoice_datetime")]
         public DateTime? InvoiceDateTime { get; set; }
 
@@ -27,7 +37,7 @@ namespace Broccoli.Core.Entities
         {
             get
             {
-                return Get<Customer>();
+               return Get<List<Customer>>();
             }
         }
 

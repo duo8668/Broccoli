@@ -36,10 +36,10 @@ namespace Broccoli.Core.Database.Eloquent
 
         //Expression<Func<TModel, bool>>
         //Expression<Func<LinqSql<TModel>, bool>>
-        public static TModel Find(Expression<Func<LinqSql<TModel>, LinqSql<TModel>>> _linq, bool withTrashed = false, params object[] args)
+        public static TModel Find(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
         {
-            var test = FilterTrashed(withTrashed).Where(_linq);
-            var result = DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(test.FinalSQL, test.Arguments);
+            var theLINQ = _linq(new LinqSql<TModel>(TableName, ColumnInfos));
+            var result = DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(theLINQ.FinalSQL, theLINQ.Arguments);
             return result;
         }
 
@@ -47,7 +47,6 @@ namespace Broccoli.Core.Database.Eloquent
         {
             var test = FilterTrashed(withTrashed).Where(predicate);
             var result = DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(test.FinalSQL, test.Arguments);
-
             return result;
         }
 
@@ -56,9 +55,9 @@ namespace Broccoli.Core.Database.Eloquent
             return Find(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args);
         }
 
-        public static List<TModel> FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
+        public static List<TModel> FindAll(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
         {
-            return QueryAll(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args).ToList();
+            return QueryAll(_linq, withTrashed, args).ToList();
         }
 
         public static List<TModel> FindAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
@@ -66,21 +65,28 @@ namespace Broccoli.Core.Database.Eloquent
             return QueryAll(predicate, withTrashed, args).ToList();
         }
 
-        public static IEnumerable<TModel> QueryAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
+        public static List<TModel> FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
         {
             return QueryAll(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args).ToList();
+        }
+
+        public static IEnumerable<TModel> QueryAll(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
+        {
+            var theLINQ = _linq(new LinqSql<TModel>(TableName, ColumnInfos));
+            var result = DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(theLINQ.FinalSQL, theLINQ.Arguments);
+            return result;
         }
 
         public static IEnumerable<TModel> QueryAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
             var test = FilterTrashed(withTrashed).Where(predicate);
-            if (predicate != null)
-            {
-                test = test.Where(predicate);
-            }
-
             var result = DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(test.FinalSQL, test.Arguments);
             return result;
+        }
+
+        public static IEnumerable<TModel> QueryAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
+        {
+            return QueryAll(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args).ToList();
         }
 
         public static List<TModel> FindPage(long page, long itemsPerPage, bool withTrashed = false, params object[] args)
@@ -104,8 +110,11 @@ namespace Broccoli.Core.Database.Eloquent
 
         public virtual List<T> hasMany<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
         {
+            //* Initialize target model
+            var targetModel = Dynamic(typeof(T));
+
             var currentPd = PocoData;
-            var targetPd = Dynamic(typeof(T)).PocoData;
+            var targetPd = targetModel.PocoData;
 
             //* Get this table and that table name
             var thisTableName = TableName;
@@ -114,8 +123,10 @@ namespace Broccoli.Core.Database.Eloquent
             //* Guessing intermediate table name
             var intermediaTable = DbFacade.GenerateIntermediateTable(thisTableName, thatTableName);
 
-            var testSql = PetaPoco.Sql.Builder
-                   .Select(thatTableName + ".*")
+            var tname = Entities.Customer.TableName;
+            /*
+            var testSql = targetModel.FilterTrashed(withTrashed)
+                    .Select(thatTableName + ".*")
                    .From(thisTableName)
                    .InnerJoin(intermediaTable)
                    .On(DbFacade.GenerateOnClauseForForeignKey(thisTableName, intermediaTable))
@@ -126,7 +137,17 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 testSql = testSql.Where(thatTableName + ".created_at IS NOT NULL ");
             }
-            var ret = Dynamic(typeof(T)).FindAll(predicate: predicate);
+            */
+            var ret = targetModel.FindAll<T>(
+                (lin) => ((LinqSql<T>)lin.FilterTrashed(withTrashed).Select(thatTableName + ".*")
+                   .From(thisTableName)
+                   .InnerJoin(intermediaTable)
+                   .On(DbFacade.GenerateOnClauseForForeignKey(thisTableName, intermediaTable))
+                   .InnerJoin(thatTableName)
+                   .On(DbFacade.GenerateOnClauseForForeignKey(thatTableName, intermediaTable)))
+                   .Where(predicate)
+                   );
+
             currentPd = null;
             targetPd = null;
 

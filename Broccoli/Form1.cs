@@ -48,11 +48,14 @@ namespace Broccoli
             var from = DateTime.Parse("2017-05-06");
             Invoice search = new Invoice();
             Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            Customer cust = Customer.Find((cccc) => cccc.id == 1);
             label1.Text = inv.InvoiceNum;
             label2.Text = inv.ModifiedAt.ToShortDateString();
-            var invs = Invoice.QueryAll();
-            inv = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-222222"));
-            
+            //var invs = Invoice.QueryAll();
+            //inv = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-222222"));
+
+            var cc = inv.hasMany<Customer>((cccc) => cccc.FirstName == "God", true);
+            /*
             Parallel.ForEach(invs, (iiiiii) =>
             {
                 var cc = iiiiii.hasMany<Customer>((cust) => cust.FirstName == "God", true);
@@ -62,7 +65,7 @@ namespace Broccoli
 
                 }
             });
-          
+          */
             label1.Text = inv.InvoiceNum;
             label2.Text = inv.ModifiedAt.ToShortDateString();
             if (inv.InvoiceDateTime.HasValue)

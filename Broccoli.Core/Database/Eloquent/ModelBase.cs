@@ -1,4 +1,5 @@
-﻿using Broccoli.Core.Database.Builder;
+﻿using Broccoli.Core.Configuration;
+using Broccoli.Core.Database.Builder;
 using Broccoli.Core.Database.Utils;
 using Broccoli.Core.Facade;
 using Broccoli.Core.Utils;
@@ -9,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -19,10 +21,9 @@ namespace Broccoli.Core.Database.Eloquent
 {
     public abstract class ModelBase
     {
-        public static string ConnectionHash { get; protected set; }
-        public static string ConnectionName { get; protected set; }
-        public static string TableName { get; protected set; }
-
+        protected static Dictionary<string, string> _connectionHashs;
+        protected static Dictionary<string, string> _connectionNames;
+        protected static Dictionary<string, string> _tableNames;
 
         public static Dynamic.Model Dynamic(Type modelType)
         {
@@ -45,7 +46,7 @@ namespace Broccoli.Core.Database.Eloquent
         }
     }
 
-    public abstract class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
+    public class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
     {
         private List<object> _DiscoveredEntities;
 
@@ -54,9 +55,106 @@ namespace Broccoli.Core.Database.Eloquent
 
         }
 
-        public static LinqSql<TModel> Linq {
-            get {
-                return new LinqSql<TModel>(TableName,ColumnInfos);
+        public static void Init()
+        {
+            InitConnectionHash();
+            InitConnectionName();
+            InitTableName();
+        }
+
+        protected static void InitConnectionName()
+        {
+            var model = typeof(TModel);
+            var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
+            var _name = defaultDbConnection;
+            if (DbSchemaConfiguration.Configs.ContainsKey(model.Name))
+            {
+                var schemaConfig = DbSchemaConfiguration.Configs[model.Name];
+                _name = schemaConfig.DatabaseConnectionName;
+            }
+            ConnectionName = _name;
+        }
+        protected static void InitConnectionHash()
+        {
+        }
+        protected static void InitTableName()
+        {
+            var model = typeof(TModel);
+            var tna = model.GetCustomAttribute<PetaPoco.TableNameAttribute>();
+            if (tna != null)
+            {
+                TableName = tna.Value;
+            }
+        }
+        public static LinqSql<TModel> _linq;
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static LinqSql<TModel> Linq
+        {
+            get
+            {
+                if (_linq == null)
+                {
+                    _linq = new LinqSql<TModel>(TableName, ColumnInfos);
+                }
+                return _linq;
+            }
+            protected set
+            {
+                _linq = value;
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string ConnectionHash
+        {
+            get
+            {
+                return _connectionHashs[typeof(TModel).Name];
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string ConnectionName
+        {
+            get
+            {
+                return _connectionNames[typeof(TModel).Name];
+            }
+            protected set
+            {
+                if (_connectionNames == null)
+                {
+                    _connectionNames = new Dictionary<string, string>();
+                }
+                if (!_connectionNames.ContainsKey(typeof(TModel).Name))
+                {
+                    _connectionNames.Add(typeof(TModel).Name, value);
+                }
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string TableName
+        {
+            get
+            {
+                return _tableNames[typeof(TModel).Name];
+            }
+            protected set
+            {
+                if (_tableNames == null)
+                {
+                    _tableNames = new Dictionary<string, string>();
+                }
+                if (!_tableNames.ContainsKey(typeof(TModel).Name))
+                {
+                    _tableNames.Add(typeof(TModel).Name, value);
+                }
             }
         }
 
@@ -71,10 +169,8 @@ namespace Broccoli.Core.Database.Eloquent
                     // Add ourselves to the discovered list.
                     this._DiscoveredEntities = new List<object> { this };
                 }
-
                 return this._DiscoveredEntities;
             }
-
             set
             {
                 this._DiscoveredEntities = value;

@@ -11,6 +11,19 @@ namespace Broccoli.Core.Configuration
 {
     public class DbSchemaConfiguration
     {
+        public static Dictionary<string, ModelSchemaConfig> _configs;
+
+        public static Dictionary<string, ModelSchemaConfig> Configs
+        {
+            get
+            {
+                if (_configs == null)
+                {
+                    _configs = Deserialize("ModelSchema.config");
+                }
+                return _configs;
+            }
+        }
         public static void Serialize(string file, DbSchemaConfiguration c)
         {
             System.Xml.Serialization.XmlSerializer xs
@@ -49,8 +62,8 @@ namespace Broccoli.Core.Configuration
 
                 if (!config.IsEmpty())
                 {
-                    _dict.Add(config.Name,config);
-                }               
+                    _dict.Add(config.Name, config);
+                }
             }
             return _dict;
         }

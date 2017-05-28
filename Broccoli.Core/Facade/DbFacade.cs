@@ -33,8 +33,9 @@ namespace Broccoli.Core.Facade
             ForeignKeyGenerator.InitGenerator("__");
             _foreignKeyGenerator = new ForeignKeyGenerator();
 
-            ReflectionAssignModelsConnectionName();
-            ReflectionAssignModelsTableName();
+            //ReflectionAssignModelsConnectionName();
+            //ReflectionAssignModelsTableName();
+            InitModelsCache();
             InitTableNamesCache();
         }
 
@@ -90,9 +91,20 @@ namespace Broccoli.Core.Facade
             });
         }
 
+        protected static void InitModelsCache()
+        {
+            GetAllModels().ForEach(model =>
+            { 
+                var method = model.GetMethod("Init", BindingFlags.Static
+                   | BindingFlags.FlattenHierarchy
+                   | BindingFlags.Public
+                   | BindingFlags.NonPublic);
+                method.Invoke(null, null);
+            });
+        }
+
         protected static void InitTableNamesCache()
         {
-            var schemaConfigs = DbSchemaConfiguration.Deserialize("ModelSchema.config");
             var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
 
             //* define a holder to store all db connection exists
@@ -102,9 +114,9 @@ namespace Broccoli.Core.Facade
             _listOfDbConnNamesToLoad.Add(defaultDbConnection);
 
             //* check for additional names to load
-            if (schemaConfigs.Count() > 0)
+            if (DbSchemaConfiguration.Configs.Count() > 0)
             {
-                var items = schemaConfigs.Select(kvp => kvp.Value).ToList();
+                var items = DbSchemaConfiguration.Configs.Select(kvp => kvp.Value).ToList();
                 foreach (var item in items)
                 {
                     if (item.DatabaseConnectionName != defaultDbConnection)
@@ -143,7 +155,7 @@ namespace Broccoli.Core.Facade
                         | BindingFlags.FlattenHierarchy
                         | BindingFlags.Public
                         | BindingFlags.NonPublic);
-                    field.SetValue(null, tna.Value);
+                    field.SetValue(model, tna.Value);
                 }
 
                 /*          
@@ -160,14 +172,13 @@ namespace Broccoli.Core.Facade
 
         protected static void ReflectionAssignModelsConnectionName()
         {
-            var schemaConfigs = DbSchemaConfiguration.Deserialize("ModelSchema.config");
             var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
             GetAllModels().ForEach(model =>
             {
                 var _name = defaultDbConnection;
-                if (schemaConfigs.ContainsKey(model.Name))
+                if (DbSchemaConfiguration.Configs.ContainsKey(model.Name))
                 {
-                    var schemaConfig = schemaConfigs[model.Name];
+                    var schemaConfig = DbSchemaConfiguration.Configs[model.Name];
                     _name = schemaConfig.DatabaseConnectionName;
                 }
 

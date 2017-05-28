@@ -1,4 +1,5 @@
-﻿using Broccoli.Core.Database.Utils;
+﻿using Broccoli.Core.Database.Builder;
+using Broccoli.Core.Database.Utils;
 using Broccoli.Core.Facade;
 using Broccoli.Core.Utils;
 using Inflector;
@@ -18,124 +19,45 @@ namespace Broccoli.Core.Database.Eloquent
 {
     public abstract class ModelBase
     {
-        protected static string ConnectionHash;
-        protected static string ConnectionName;
-        protected static string TableName;
-        protected ForeignKeyGenerator _foreignKeyGenerator;
+        public static string ConnectionHash { get; protected set; }
+        public static string ConnectionName { get; protected set; }
+        public static string TableName { get; protected set; }
 
-        /**
-         * Given a model name, we will return the model type.
-         *
-         * The name can be a fully qualified type name:
-         *
-         * ```cs
-         * 	Model.GetModel("Aceme.Models.Person");
-         * ```
-         *
-         * Or you may provide just the class name:
-         *
-         * ```cs
-         *  Model.GetModel("Person");
-         * ```
-         *
-         * Or you may provide the plurized version:
-         *
-         * ```cs
-         *  Model.GetModel("Persons");
-         * ```
-         *
-         * > NOTE: This is case-insensitive.
-         */
-        public static Type GetModel(string modelName)
-        {
-            modelName = modelName.ToLower();
 
-            return DbFacade.GetAllModels().Single(model =>
-            {
-                var modelNameToCheck = model.ToString().ToLower();
-
-                // Do we have a complete full namespace match
-                if (modelNameToCheck == modelName)
-                {
-                    return true;
-                }
-                else
-                {
-                    // Check for a class name match
-                    var typeParts = modelNameToCheck.Split('.');
-                    var className = typeParts[typeParts.Length - 1];
-                    if (className == modelName)
-                    {
-                        return true;
-                    }
-
-                    // We will also check for the pluralized version
-                    else if (className.Pluralize() == modelName)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            });
-        }
-
-        /**
-         * Return a new DModel instance from the given Type.
-         *
-         * ```cs
-         *  Model.Dynamic(typeof(Foo)).SqlTableName;
-         * ```
-         */
         public static Dynamic.Model Dynamic(Type modelType)
         {
             return new Dynamic.Model(modelType);
         }
 
-        /**
-         * Return a new DModel instance from the given model name.
-         *
-         * ```cs
-         *  Model.Dynamic("Foo").SqlTableName;
-         * ```
-         */
         public static Dynamic.Model Dynamic(string modelName)
         {
-            return new Dynamic.Model(GetModel(modelName));
+            return new Dynamic.Model(DbFacade.GetModel(modelName));
         }
 
-        /**
-         * Return a new DModel instance from the given entity.
-         *
-         * ```cs
-         *  Model.Dynamic(entity).SqlTableName;
-         * ```
-         */
         public static Dynamic.Model Dynamic(object entity)
         {
             return new Dynamic.Model(entity);
         }
 
-        /**
-         * Return a new DModel instance from the given generic type parameter.
-         *
-         * ```cs
-         *  Model.Dynamic<Foo>().SqlTableName;
-         * ```
-         */
         public static Dynamic.Model Dynamic<TModel>()
         {
             return new Dynamic.Model(typeof(TModel));
         }
     }
 
-    public abstract class ModelBase<TModel> : ModelBase, IModelBase
+    public abstract class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
     {
         private List<object> _DiscoveredEntities;
 
         public ModelBase()
         {
 
+        }
+
+        public static LinqSql<TModel> Linq {
+            get {
+                return new LinqSql<TModel>(TableName,ColumnInfos);
+            }
         }
 
         [JsonIgnore]
@@ -223,12 +145,6 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
-        public string GenerateIntermediateTable(string thisTable, string thatTable)
-        {
-            _foreignKeyGenerator = new ForeignKeyGenerator();
-            return _foreignKeyGenerator.GenerateIntermediateTable(thisTable, thatTable);
-        }
-
         #region Custom property management
 
         [JsonIgnore]
@@ -241,6 +157,7 @@ namespace Broccoli.Core.Database.Eloquent
                 {
                     var db = DbFacade.GetDatabaseConnection(ConnectionName);
                     _PocoData = db.GetPocoDataForType(typeof(TModel));
+
                 }
 
                 // Return a new list, and leave the cached copy as is.
@@ -259,31 +176,55 @@ namespace Broccoli.Core.Database.Eloquent
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
 
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static Dictionary<string, PocoColumn> ColumnInfos
+        {
+            get
+            {
+                if (_ColumnInfos == null)
+                {
+                    // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
+                    // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
+
+                    _ColumnInfos = new Dictionary<string, PocoColumn>();
+
+                    foreach (var kyp in PocoData.Columns)
+                    {
+                        var prop = kyp.Value.PropertyInfo;
+                        ColumnInfos[prop.Name] = kyp.Value;
+                    }
+                }
+
+                return _ColumnInfos;
+            }
+        }
+        private static Dictionary<string, PocoColumn> _ColumnInfos;
+
         /**
-         * When a property is first set, we store a shallow clone of the value.
-         * Used in the _"Save"_ method to determin what relationships should be removed.
+         * When a property is first set, we store a shallow clone of the value. Used in the _"Save"_ method to determin what relationships should be removed.
          *
          * > NOTE: Combine this with a Before and AfterSave event, makes for simple change detection.
          */
         [JsonIgnore]
         [PetaPoco.Ignore]
-        public Dictionary<string, object> OriginalPropertyBag
+        public static Dictionary<string, object> OriginalPropertyBag
         {
             get
             {
-                if (this._OriginalPropertyBag == null)
+                if (_OriginalPropertyBag == null)
                 {
                     // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
                     // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
 
-                    this._OriginalPropertyBag = new Dictionary<string, object>();
+                    _OriginalPropertyBag = new Dictionary<string, object>();
 
                     foreach (var kyp in PocoData.Columns)
                     {
                         var prop = kyp.Value.PropertyInfo;
                         if (TypeMapper.IsList(prop.PropertyType))
                         {
-                            this._OriginalPropertyBag[prop.Name] =
+                            _OriginalPropertyBag[prop.Name] =
                             Activator.CreateInstance
                             (
                                 typeof(List<>).MakeGenericType
@@ -294,25 +235,24 @@ namespace Broccoli.Core.Database.Eloquent
                         }
                         else if (prop.PropertyType.IsValueType)
                         {
-                            this._OriginalPropertyBag[prop.Name] = Activator
+                            _OriginalPropertyBag[prop.Name] = Activator
                             .CreateInstance(prop.PropertyType);
                         }
                         else
                         {
-                            this._OriginalPropertyBag[prop.Name] = null;
+                            _OriginalPropertyBag[prop.Name] = null;
                         }
                     }
 
                 }
 
-                return this._OriginalPropertyBag;
+                return _OriginalPropertyBag;
             }
         }
-        private Dictionary<string, object> _OriginalPropertyBag;
+        private static Dictionary<string, object> _OriginalPropertyBag;
 
         /**
          * Entity Property Getter.
-         *
          * All _"mapped"_ properties need to implement this as their Getter.
          *
          * 	class Foo : Model<Foo>
@@ -373,7 +313,6 @@ namespace Broccoli.Core.Database.Eloquent
         *
         * All _"mapped"_ properties need to implement this as their Setter.
         *
-        * 
         * 	class Foo : Model<Foo>
         * 	{
         * 		public string Bar { get... set { Set(value); } }
@@ -407,11 +346,11 @@ namespace Broccoli.Core.Database.Eloquent
                     var clone = (value as IEnumerable<object>)
                     .Cast<IModel<TModel>>().ToList();
 
-                    this.OriginalPropertyBag[propName] = clone;
+                    OriginalPropertyBag[propName] = clone;
                 }
                 else
                 {
-                    this.OriginalPropertyBag[propName] = value;
+                    OriginalPropertyBag[propName] = value;
                 }
             }
 
@@ -462,12 +401,36 @@ namespace Broccoli.Core.Database.Eloquent
             if (triggerChangeEvent) this.FirePropertyChanged(prop);
         }
 
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public List<PropertyInfo> ModifiedProps
+        {
+            get
+            {
+                return this._ModifiedProps;
+            }
+        }
+
+        private List<PropertyInfo> _ModifiedProps = new List<PropertyInfo>();
+
+        /**
+         * This just keeps a list of all the mapped properties that have
+         * changed since hydration.
+         */
+        protected void UpdateModified(PropertyInfo changedProp)
+        {
+            if (!this.ModifiedProps.Contains(changedProp))
+            {
+                this.ModifiedProps.Add(changedProp);
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(PropertyInfo prop) { }
         public void FirePropertyChanged(PropertyInfo prop)
         {
             // Run some of our own code first.
-            // this.UpdateModified(prop);
+            this.UpdateModified(prop);
             // this.SaveDiscoveredEntities(prop);
 
             // Run the OnPropertyChanged method. This allows models to override

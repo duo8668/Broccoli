@@ -47,20 +47,22 @@ namespace Broccoli
         {
             var from = DateTime.Parse("2017-05-06");
             Invoice search = new Invoice();
-            Invoice inv = Invoice.Find("invoice_num=@0", false, "INV-222222");
+            Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            label1.Text = inv.InvoiceNum;
+            label2.Text = inv.ModifiedAt.ToShortDateString();
             var invs = Invoice.QueryAll();
-
+            inv = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-222222"));
+            
             Parallel.ForEach(invs, (iiiiii) =>
             {
-                //var custs = iiiiii.Customers;
-                var cc = iiiiii.hasMany<Customer>();
+                var cc = iiiiii.hasMany<Customer>((cust) => cust.FirstName == "God", true);
 
-                foreach(var cust in cc)
+                foreach (var cust in cc)
                 {
 
                 }
             });
-
+          
             label1.Text = inv.InvoiceNum;
             label2.Text = inv.ModifiedAt.ToShortDateString();
             if (inv.InvoiceDateTime.HasValue)
@@ -73,5 +75,52 @@ namespace Broccoli
             }
 
         }
+
+        private string testArgs(string main = "", params object[] args)
+        {
+            foreach (var arg in args)
+            {
+
+            }
+
+            return main;
+        }
+    }
+
+    // Define some classes
+    public class Student
+    {
+        public string First { get; set; }
+        public string Last { get; set; }
+        public int ID { get; set; }
+        public List<int> Scores;
+        public ContactInfo GetContactInfo(List<ContactInfo> contactList, int id)
+        {
+            ContactInfo cInfo =
+                (from ci in contactList
+                 where ci.ID == id
+                 select ci)
+                .FirstOrDefault();
+
+            return cInfo;
+        }
+
+        public override string ToString()
+        {
+            return First + " " + Last + ":" + ID;
+        }
+    }
+    public class ContactInfo
+    {
+        public int ID { get; set; }
+        public string Email { get; set; }
+        public string Phone { get; set; }
+        public override string ToString() { return Email + "," + Phone; }
+    }
+
+    public class ScoreInfo
+    {
+        public double Average { get; set; }
+        public int ID { get; set; }
     }
 }

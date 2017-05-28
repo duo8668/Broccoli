@@ -2251,8 +2251,7 @@ namespace Graceful
         }
 
         /**
-         * Returns the only entity of the set. If the set contains no entities
-         * or more than one entity then an exception will be thrown.
+         * Returns the only entity of the set. If the set contains no entities or more than one entity then an exception will be thrown.
          *
          * ```cs
          * 	var entity = Models.Foo.Single();
@@ -2264,8 +2263,7 @@ namespace Graceful
         }
 
         /**
-         * Returns the only entity of the set that matches the expression.
-         * If the set contains no entities or more than one entity then an
+         * Returns the only entity of the set that matches the expression. If the set contains no entities or more than one entity then an
          * exception will be thrown.
          *
          * ```cs
@@ -2278,8 +2276,7 @@ namespace Graceful
         }
 
         /**
-         * Returns the only entity of the set that matches the dynamic string
-         * expression. If the set contains no entities or more than one entity
+         * Returns the only entity of the set that matches the dynamic string expression. If the set contains no entities or more than one entity
          * then an exception will be thrown.
          *
          * ```cs
@@ -2306,8 +2303,7 @@ namespace Graceful
         }
 
         /**
-         * Returns the only element of the set that matches the expression, or a
-         * default value if the set is empty; this method throws an exception
+         * Returns the only element of the set that matches the expression, or a default value if the set is empty; this method throws an exception
          * if there is more than one element in the set.
          *
          * ```cs
@@ -2320,8 +2316,7 @@ namespace Graceful
         }
 
         /**
-         * Returns the only element of the set that matches the dynamic string
-         * expression, or a default value if the set is empty; this method
+         * Returns the only element of the set that matches the dynamic string expression, or a default value if the set is empty; this method
          * throws an exception if there is more than one element in the set.
          *
          * ```cs
@@ -2334,8 +2329,7 @@ namespace Graceful
         }
 
         /**
-         * Filters the set based on the expression.
-         * This does not return results but a new filtered Linq<TModel>.
+         * Filters the set based on the expression. This does not return results but a new filtered Linq<TModel>.
          *
          * ```cs
          * 	var filteredEntities = Models.Foo.Where(e => e.Bar == "abc");
@@ -2347,8 +2341,7 @@ namespace Graceful
         }
 
         /**
-         * Filters the set based on the dyanmic string expression.
-         * This does not return results but a new filtered Linq<TModel>.
+         * Filters the set based on the dyanmic string expression. This does not return results but a new filtered Linq<TModel>.
          *
          * ```cs
          * 	var filteredEntities = Models.Foo.Where("e => e.Bar == \"abc\"");

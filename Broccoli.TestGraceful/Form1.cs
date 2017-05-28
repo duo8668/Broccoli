@@ -22,7 +22,7 @@ namespace Broccoli.TestGraceful
         private void button1_Click(object sender, EventArgs e)
         {
 
-            var brad = BioBill.Where(eee => eee.BillNumber == "B102010000003", true).First();
+            var brad = BioBill.Where(iii => iii.BillNumber == "B102010000003", true).First();
 
             var dtls = brad.BioBillDetails;
             button1.Text = "dddddddddddddddd";

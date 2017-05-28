@@ -534,6 +534,7 @@ namespace PetaPoco
             cmd.Connection = connection;
             cmd.CommandText = sql;
             cmd.Transaction = _transaction;
+
             foreach (var item in args)
             {
                 AddParam(cmd, item, null);
@@ -1190,7 +1191,8 @@ namespace PetaPoco
         /// <returns>The first record in the result set, or default(T) if no matching rows</returns>
         public T FirstOrDefault<T>(Sql sql)
         {
-            return Query<T>(sql).FirstOrDefault();
+            var q = Query<T>(sql);
+            return q.FirstOrDefault();
         }
 
         #endregion
@@ -2402,16 +2404,6 @@ namespace PetaPoco
         #endregion
 
 
-        public PocoData GetPocoDataForType(Type t)
-        {
-            return PocoData.ForType(t, _defaultMapper);
-        }
-
-        public PocoData GetPocoDataForObject(object poco)
-        {
-            var pd = GetPocoDataForType(poco.GetType());
-            return PocoData.ForObject(poco, pd.TableInfo.PrimaryKey, _defaultMapper);
-        }
 
         #region Public Properties
 
@@ -3134,7 +3126,6 @@ namespace PetaPoco
         /// </returns>
         IMapper DefaultMapper { get; }
 
-        bool KeepConnectionAlive { get; set; }
 
         /// <summary>
         ///     Gets the SQL of the last executed statement
@@ -3269,8 +3260,6 @@ namespace PetaPoco
         /// </summary>
         void CompleteTransaction();
 
-        PocoData GetPocoDataForType(Type type);
-        PocoData GetPocoDataForObject(object poco);        
     }
 
 
@@ -7671,7 +7660,7 @@ namespace PetaPoco
         // Helper to handle named parameters from object properties
         public static string ProcessParams(string sql, object[] args_src, List<object> args_dest)
         {
-            return rxParams.Replace(sql, m =>
+            string ret = rxParams.Replace(sql, m =>
             {
                 string param = m.Value.Substring(1);
 
@@ -7725,8 +7714,9 @@ namespace PetaPoco
                     args_dest.Add(arg_val);
                     return "@" + (args_dest.Count - 1).ToString();
                 }
-            }
-                );
+            });
+
+            return ret;
         }
     }
 

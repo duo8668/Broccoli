@@ -63,14 +63,20 @@
     <Compile Include="Configuration\ModelSchemaConfig.cs" />
     <Compile Include="Database\Attributes\ConnectionStringAttribute.cs" />
     <Compile Include="Database\Attributes\SqlTableNameAttribute.cs" />
-    <Compile Include="Database\Builder\EspressionBuilder.cs" />
+    <Compile Include="Database\BroccoliDatabase.cs" />
+    <Compile Include="Database\Builder\ExpressionBuilder.cs" />
+    <Compile Include="Database\Builder\LinqSql.cs" />
     <Compile Include="Database\Context.cs" />
     <Compile Include="Database\Dynamic\Model.cs" />
     <Compile Include="Database\Eloquent\IModel.cs" />
     <Compile Include="Database\Eloquent\IModelBase.cs" />
     <Compile Include="Database\Eloquent\Model.cs" />
     <Compile Include="Database\Eloquent\ModelBase.cs" />
+    <Compile Include="Database\Exceptions\Exception.cs" />
+    <Compile Include="Database\IBroccoliDatabase.cs" />
+    <Compile Include="Database\Utils\Converters\PredicateConverter.cs" />
     <Compile Include="Database\Utils\ForeignKeyGenerator.cs" />
+    <Compile Include="Entities\Core\InformationSchema.cs" />
     <Compile Include="Entities\Customer.cs" />
     <Compile Include="Entities\Invoice.cs" />
     <Compile Include="Extensions\ExtensionMethods.cs" />
@@ -93,6 +99,7 @@
     <None Include="Models\Generated\PetaPoco.Core.ttinclude" />
     <None Include="Models\Generated\PetaPoco.Generator.ttinclude" />
     <None Include="packages.config" />
+    <None Include="sql_server_tableCommand.config" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Models\Generated\Database.tt">

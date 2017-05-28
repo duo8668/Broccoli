@@ -1,6 +1,7 @@
 ﻿using Broccoli.Core.Database.Eloquent;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
@@ -29,6 +30,7 @@ namespace Broccoli.Core.Entities
                 Set<string>(value);
             }
         }
+
         [PetaPoco.Column("invoice_datetime")]
         public DateTime? InvoiceDateTime { get; set; }
 
@@ -37,9 +39,9 @@ namespace Broccoli.Core.Entities
         {
             get
             {
-               return Get<List<Customer>>();
+                return Get<List<Customer>>();
             }
         }
-
+         
     }
 }

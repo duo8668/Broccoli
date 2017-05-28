@@ -3,7 +3,6 @@ using Broccoli.Core.Utils;
 using Broccoli.Core.Extensions;
 using Inflector;
 using Newtonsoft.Json;
-using PetaPoco;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,6 +16,8 @@ using System.Threading.Tasks;
 using Broccoli.Core.Database.Utils;
 using Broccoli.Core.Database.Dynamic;
 using System.Diagnostics;
+using Broccoli.Core.Database.Utils.Converters;
+using Broccoli.Core.Database.Builder;
 
 namespace Broccoli.Core.Database.Eloquent
 {
@@ -26,74 +27,63 @@ namespace Broccoli.Core.Database.Eloquent
      * We need to handle this case.
      */
     [PetaPoco.PrimaryKey("id")]
-    public class Model<TModel> : ModelBase<TModel>
+    public class Model<TModel> : ModelBase<TModel> where TModel : Model<TModel>, new()
     {
+        public static LinqSql<TModel> FilterTrashed(bool withTrashed = false)
+        {
+            return Linq.FilterTrashed(withTrashed);
+        }
+
+        //Expression<Func<TModel, bool>>
+        //Expression<Func<LinqSql<TModel>, bool>>
+        public static TModel Find(Expression<Func<LinqSql<TModel>, LinqSql<TModel>>> _linq, bool withTrashed = false, params object[] args)
+        {
+            var test = FilterTrashed(withTrashed).Where(_linq);
+            var result = DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(test.FinalSQL, test.Arguments);
+            return result;
+        }
+
+        public static TModel Find(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
+        {
+            var test = FilterTrashed(withTrashed).Where(predicate);
+            var result = DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(test.FinalSQL, test.Arguments);
+
+            return result;
+        }
+
         public static TModel Find(string _whereCondition, bool withTrashed = false, params object[] args)
         {
-            var db = DbFacade.GetDatabaseConnection(ConnectionName);
-
-            var pd2 = db.GetPocoDataForType(typeof(TModel));
-
-            var _sql = PetaPoco.Sql.Builder
-                .Select("*")
-                .From(TableName)
-                .Where(_whereCondition, args)
-                ;
-            if (!withTrashed)
-            {
-                _sql = _sql.Where("created_at IS NOT NULL ");
-            }
-
-            return DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(_sql.SQL, args);
+            return Find(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args);
         }
 
-        public static List<TModel> FindAll(string _whereCondition = "", bool withTrashed = false)
+        public static List<TModel> FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
         {
-            return QueryAll(_whereCondition, withTrashed).ToList();
+            return QueryAll(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args).ToList();
         }
 
-        public static IEnumerable<TModel> QueryAll(string _whereCondition = "", bool withTrashed = false)
+        public static List<TModel> FindAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
-            var _sql = PetaPoco.Sql.Builder
-                 .Select("*")
-                .From(TableName);
-            if (!string.IsNullOrEmpty(_whereCondition))
-            {
-                _sql = _sql.Where(_whereCondition);
-            }
-            if (!withTrashed)
-            {
-                _sql = _sql.Where("created_at IS NOT NULL ");
-            }
-
-            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(_sql);
+            return QueryAll(predicate, withTrashed, args).ToList();
         }
 
-        public static IEnumerable<TModel> QueryAll(Sql _whereCondition = null, bool withTrashed = false)
+        public static IEnumerable<TModel> QueryAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
         {
-            var _sql = new Sql();
-            if (_whereCondition == null)
-            {
-                _sql = _whereCondition;
-            }
-            else
-            {
-                _sql = PetaPoco.Sql.Builder.Select("*").From(TableName);
-            }
-
-            if ((_whereCondition) != null)
-            {
-                _sql = _sql.Where(_whereCondition);
-            }
-            if (!withTrashed)
-            {
-                _sql = _sql.Where("created_at IS NOT NULL ");
-            }
-
-            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(_sql);
+            return QueryAll(ExpressionBuilder.BuildPredicateExpression<TModel>(_whereCondition), withTrashed, args).ToList();
         }
 
-        public static List<TModel> FindPage(long page, long itemsPerPage, bool withTrashed = false)
+        public static IEnumerable<TModel> QueryAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
+        {
+            var test = FilterTrashed(withTrashed).Where(predicate);
+            if (predicate != null)
+            {
+                test = test.Where(predicate);
+            }
+
+            var result = DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(test.FinalSQL, test.Arguments);
+            return result;
+        }
+
+        public static List<TModel> FindPage(long page, long itemsPerPage, bool withTrashed = false, params object[] args)
         {
             var _sql = PetaPoco.Sql.Builder
                 .Select("*");
@@ -102,7 +92,7 @@ namespace Broccoli.Core.Database.Eloquent
                 _sql = _sql.Where("date_created IS NOT NULL ");
             }
             //(long page, long itemsPerPage, string sqlCount, object[] countArgs, string sqlPage, object[] pageArgs)
-            return DbFacade.GetDatabaseConnection("broccoli_db").Page<TModel>(page, itemsPerPage, _sql, null).Items;
+            return DbFacade.GetDatabaseConnection(ConnectionName).Page<TModel>(page, itemsPerPage, _sql, null).Items;
         }
 
         public static TModel Save(TModel _data)
@@ -112,26 +102,34 @@ namespace Broccoli.Core.Database.Eloquent
             return default(TModel);
         }
 
-        public List<TModel> InvokeFindAll(string _whereCondition = "", bool withTrashed = false)
+        public virtual List<T> hasMany<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
         {
-            return Dynamic(typeof(TModel)).FindAll(_whereCondition, withTrashed);
-            // return FindAll(_whereCondition, withTrashed);
-        }
-
-
-        public virtual List<T> hasMany<T>(string _additionalWhereCondition = "", bool withTrashed = false) where T : Model<T>, new()
-        {
-            //List<T> ttt = new List<T>();
-            //T targetType = new T();
-
             var currentPd = PocoData;
-            var pd2 = Dynamic(typeof(T)).PocoData;
+            var targetPd = Dynamic(typeof(T)).PocoData;
 
+            //* Get this table and that table name
             var thisTableName = TableName;
-            var thatTableName = pd2.TableInfo.TableName;
-            var intermediaTable = GenerateIntermediateTable(thisTableName, thatTableName);
-            //var ret = targetType.InvokeFindAll();
-            var ret = Dynamic(typeof(T)).FindAll(_additionalWhereCondition);
+            var thatTableName = targetPd.TableInfo.TableName;
+
+            //* Guessing intermediate table name
+            var intermediaTable = DbFacade.GenerateIntermediateTable(thisTableName, thatTableName);
+
+            var testSql = PetaPoco.Sql.Builder
+                   .Select(thatTableName + ".*")
+                   .From(thisTableName)
+                   .InnerJoin(intermediaTable)
+                   .On(DbFacade.GenerateOnClauseForForeignKey(thisTableName, intermediaTable))
+                   .InnerJoin(thatTableName)
+                   .On(DbFacade.GenerateOnClauseForForeignKey(thatTableName, intermediaTable));
+
+            if (!withTrashed)
+            {
+                testSql = testSql.Where(thatTableName + ".created_at IS NOT NULL ");
+            }
+            var ret = Dynamic(typeof(T)).FindAll(predicate: predicate);
+            currentPd = null;
+            targetPd = null;
+
             return ret;
         }
     }

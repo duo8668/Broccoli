@@ -25,18 +25,31 @@ namespace Broccoli.Core.Facade
         // Handling foreign key
         private static ForeignKeyGenerator _foreignKeyGenerator;
 
-        //* All tables cache
+        //* All Database tables cache
+        private static Dictionary<string, string> _dbAllTablesCache = new Dictionary<string, string>();
+
+        //* All mapped connection names cache
+        private static Dictionary<string, string> _connectionNamesCache = new Dictionary<string, string>();
+
+        //* All mapped table names cache
         private static Dictionary<string, string> _tableNamesCache = new Dictionary<string, string>();
+
+        // the key is the modelName and the value is the PocoData
+        private static Dictionary<string, PocoData> _pocoDatas = new Dictionary<string, PocoData>();
+
+        // the key is the modelName and the value is the PocoData
+        private static Dictionary<string, Database.Dynamic.Model> _dynamicModelCache = new Dictionary<string, Database.Dynamic.Model>();
+
+        // the key is the modelName and the value is the dictionary of PocoColumn
+        private static Dictionary<string, Dictionary<string, PocoColumn>> _columnInfos = new Dictionary<string, Dictionary<string, PocoColumn>>();
 
         public static void Initialize()
         {
             ForeignKeyGenerator.InitGenerator("__");
             _foreignKeyGenerator = new ForeignKeyGenerator();
 
-            //ReflectionAssignModelsConnectionName();
-            //ReflectionAssignModelsTableName();
             InitModelsCache();
-            InitTableNamesCache();
+            InitDbAllTablesCache();
         }
 
         public static HashSet<Type> GetAllModels()
@@ -55,6 +68,46 @@ namespace Broccoli.Core.Facade
             });
 
             return _AllModels;
+        }
+
+        public static Dictionary<string, string> ConnectionNames
+        {
+            get
+            {
+                return _connectionNamesCache;
+            }
+        }
+
+        public static Dictionary<string, string> TableNames
+        {
+            get
+            {
+                return _tableNamesCache;
+            }
+        }
+
+        public static Dictionary<string, PocoData> PocoDatas
+        {
+            get
+            {
+                return _pocoDatas;
+            }
+        }
+
+        public static Dictionary<string, Dictionary<string, PocoColumn>> ColumnInfos
+        {
+            get
+            {
+                return _columnInfos;
+            }
+        }
+
+        public static Dictionary<string, Database.Dynamic.Model> DynamicModels
+        {
+            get
+            {
+                return _dynamicModelCache;
+            }
         }
 
         public static Type GetModel(string modelName)
@@ -94,16 +147,56 @@ namespace Broccoli.Core.Facade
         protected static void InitModelsCache()
         {
             GetAllModels().ForEach(model =>
-            { 
-                var method = model.GetMethod("Init", BindingFlags.Static
-                   | BindingFlags.FlattenHierarchy
-                   | BindingFlags.Public
-                   | BindingFlags.NonPublic);
-                method.Invoke(null, null);
+            {
+                DoPocoModelInitialization(model);
+                InitConnectionNamesCache(model);
+                InitTableNamesCache(model);
+                DoPocoDatasInitialization(model);
+                DoPocoColumnsInitialization(model);
             });
         }
 
-        protected static void InitTableNamesCache()
+        protected static void DoPocoModelInitialization(Type model)
+        {
+            var method = model.GetMethod("Init", BindingFlags.Static
+                 | BindingFlags.FlattenHierarchy
+                 | BindingFlags.Public
+                 | BindingFlags.NonPublic);
+            method.Invoke(null, null);
+        }
+
+        protected static void DoPocoDatasInitialization(Type model)
+        {
+            var db = DbFacade.GetDatabaseConnection(_connectionNamesCache[model.Name]);
+            var pd = db.GetPocoDataForType(model);
+
+            _pocoDatas.Add(model.Name, pd);
+            db.Dispose();
+            pd = null;
+        }
+
+        protected static void DoPocoColumnsInitialization(Type model)
+        {
+            var cis = new Dictionary<string, PocoColumn>();
+
+            foreach (var kyp in _pocoDatas[model.Name].Columns)
+            {
+                var prop = kyp.Value.PropertyInfo;
+                cis[prop.Name] = kyp.Value;
+            }
+            _columnInfos.Add(model.Name, cis);
+
+            cis = null;
+        }
+
+        protected static void DoDynamicModelInitialization(Type model)
+        {
+            var mdl = ModelBase.Dynamic(model);
+
+            _dynamicModelCache.Add(model.Name, mdl);
+        }
+
+        protected static void InitDbAllTablesCache()
         {
             var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
 
@@ -136,11 +229,32 @@ namespace Broccoli.Core.Facade
                 foreach (var item in tableSchemas)
                 {
                     var specialKey = item.TABLE_SCHEMA + "_" + item.TABLE_NAME;
-                    if (!_tableNamesCache.ContainsKey(specialKey))
+                    if (!_dbAllTablesCache.ContainsKey(specialKey))
                     {
-                        _tableNamesCache.Add(specialKey, item.TABLE_NAME);
+                        _dbAllTablesCache.Add(specialKey, item.TABLE_NAME);
                     }
                 }
+            }
+        }
+
+        protected static void InitConnectionNamesCache(Type model)
+        {
+            var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
+            var _name = defaultDbConnection;
+            if (DbSchemaConfiguration.Configs.ContainsKey(model.Name))
+            {
+                var schemaConfig = DbSchemaConfiguration.Configs[model.Name];
+                _name = schemaConfig.DatabaseConnectionName;
+            }
+            _connectionNamesCache.Add(model.Name, _name);
+        }
+
+        protected static void InitTableNamesCache(Type model)
+        {
+            var tna = model.GetCustomAttribute<PetaPoco.TableNameAttribute>();
+            if (tna != null)
+            {
+                _tableNamesCache.Add(model.Name, tna.Value);
             }
         }
 
@@ -201,18 +315,19 @@ namespace Broccoli.Core.Facade
         {
             var foreignTable = _foreignKeyGenerator.GenerateIntermediateTable(thisTable, thatTable);
 
-            if (!_tableNamesCache.ContainsValue(foreignTable))
+            if (!_dbAllTablesCache.ContainsValue(foreignTable))
             {
                 foreignTable = _foreignKeyGenerator.GenerateIntermediateTable(thatTable, thisTable);
             }
 
-            if (!_tableNamesCache.ContainsValue(foreignTable))
+            if (!_dbAllTablesCache.ContainsValue(foreignTable))
             {
                 foreignTable = null;
             }
             return foreignTable;
         }
 
+        //*
         public static string GenerateOnClauseForForeignKey(string thisTable, string thatTable)
         {
             return _foreignKeyGenerator.GenerateOnClauseForForeignKey(thisTable, thatTable);

@@ -9,6 +9,7 @@ namespace Broccoli.Core.Database.Utils
     public class ForeignKeyGenerator : IForeignKeyGenerator
     {
         public static string IdentitySeparator { get; protected set; }
+        public static char[] _identitySeparator;
 
         public ForeignKeyGenerator()
         {
@@ -18,16 +19,18 @@ namespace Broccoli.Core.Database.Utils
         public static void InitGenerator(string _separator)
         {
             IdentitySeparator = _separator;
+            _identitySeparator = _separator.ToArray();
         }
 
-        public string GenerateIntermediateTable(string thisTable, string thatTable)
+        public virtual string GenerateIntermediateTable(string thisTable, string thatTable)
         {
-            var thisTablesSplit = thisTable.Split(IdentitySeparator.ToCharArray());
-            var thatTablesSplit = thatTable.Split(IdentitySeparator.ToCharArray());
-
-            if (thisTablesSplit.Length > 1 && thatTablesSplit.Length > 1)
+            var thisTablesSplit = thisTable.Split(_identitySeparator);
+            var thatTablesSplit = thatTable.Split(_identitySeparator);
+            var len1 = thisTablesSplit.Length;
+            var len2 = thatTablesSplit.Length;
+            if (len1 > 1 && len2 > 1)
             {
-                return string.Concat(thisTablesSplit[thisTablesSplit.Length - 1], IdentitySeparator, thatTablesSplit[thatTablesSplit.Length - 1]);
+                return string.Concat(thisTablesSplit[len1--], IdentitySeparator, thatTablesSplit[len2--]);
             }
             else
             {
@@ -35,14 +38,15 @@ namespace Broccoli.Core.Database.Utils
             }
         }
 
-        public string GenerateOnClauseForForeignKey(string thisTable, string thatTable)
+        public virtual string GenerateOnClauseForForeignKey(string thisTable, string thatTable)
         {
-            var thisTablesSplit = thisTable.Split(IdentitySeparator.ToCharArray());
-            var thatTablesSplit = thatTable.Split(IdentitySeparator.ToCharArray());
-
-            if (thisTablesSplit.Length > 1 && thatTablesSplit.Length > 1)
+            var thisTablesSplit = thisTable.Split(_identitySeparator);
+            var thatTablesSplit = thatTable.Split(_identitySeparator);
+            var len1 = thisTablesSplit.Length;
+            var len2 = thatTablesSplit.Length;
+            if (len1 > 1 && len2 > 1)
             {
-                return string.Concat(thisTable, ".id", "=", thatTable, ".", thisTablesSplit[thisTablesSplit.Length - 1], "Id");
+                return string.Concat(thisTable, ".id", "=", thatTable, ".", thisTablesSplit[len1--], "Id");
             }
             else
             {

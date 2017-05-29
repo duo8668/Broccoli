@@ -21,7 +21,7 @@ namespace Broccoli.Core.Database.Builder
 
         public LinqSql()
         {
-
+            thisSql = this;
         }
 
         public LinqSql(string tableName, Dictionary<string, PocoColumn> columnInfos)
@@ -61,6 +61,7 @@ namespace Broccoli.Core.Database.Builder
                 //* Not sure below still needed. Will have to check when we do more query
                 //args = args.Concat(new_args.ToArray()).ToArray();
                 new_args = null; converter = null; hold = null;
+                GC.Collect();
             }
 
             return this;

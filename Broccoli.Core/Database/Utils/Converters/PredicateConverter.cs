@@ -181,9 +181,9 @@ namespace Broccoli.Core.Database.Utils.Converters
             // We only need to do this if we did not have a child ConstantExpression
             if (value == null)
             {
-                var dynamicHolder = ModelBase.Dynamic(DbFacade.GetModel(node.Expression.Type.Name));
-                var tableName = dynamicHolder.TableName;
-                var columnName = dynamicHolder.ColumnInfos[node.Member.Name].ColumnName;
+                var typeName = node.Expression.Type.Name;
+                var tableName = DbFacade.TableNames[typeName];
+                var columnName = DbFacade.ColumnInfos[typeName][node.Member.Name].ColumnName;
                 this.sql.Append(string.Concat(tableName, ".", columnName, " "));
             }
 

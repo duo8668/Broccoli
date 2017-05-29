@@ -34,14 +34,5 @@ namespace Broccoli.Core.Entities
         [PetaPoco.Column("invoice_datetime")]
         public DateTime? InvoiceDateTime { get; set; }
 
-        //* Extended Property
-        public List<Customer> Customers
-        {
-            get
-            {
-                return Get<List<Customer>>();
-            }
-        }
-         
     }
 }

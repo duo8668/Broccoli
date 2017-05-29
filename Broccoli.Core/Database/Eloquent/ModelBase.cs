@@ -21,10 +21,6 @@ namespace Broccoli.Core.Database.Eloquent
 {
     public abstract class ModelBase
     {
-        protected static Dictionary<string, string> _connectionHashs;
-        protected static Dictionary<string, string> _connectionNames;
-        protected static Dictionary<string, string> _tableNames;
-
         public static Dynamic.Model Dynamic(Type modelType)
         {
             return new Dynamic.Model(modelType);
@@ -50,6 +46,8 @@ namespace Broccoli.Core.Database.Eloquent
     {
         private List<object> _DiscoveredEntities;
 
+        protected static string _modelName;
+
         public ModelBase()
         {
 
@@ -57,35 +55,24 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static void Init()
         {
-            InitConnectionHash();
-            InitConnectionName();
-            InitTableName();
+
         }
 
-        protected static void InitConnectionName()
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string ModelName
         {
-            var model = typeof(TModel);
-            var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
-            var _name = defaultDbConnection;
-            if (DbSchemaConfiguration.Configs.ContainsKey(model.Name))
+            get
             {
-                var schemaConfig = DbSchemaConfiguration.Configs[model.Name];
-                _name = schemaConfig.DatabaseConnectionName;
-            }
-            ConnectionName = _name;
-        }
-        protected static void InitConnectionHash()
-        {
-        }
-        protected static void InitTableName()
-        {
-            var model = typeof(TModel);
-            var tna = model.GetCustomAttribute<PetaPoco.TableNameAttribute>();
-            if (tna != null)
-            {
-                TableName = tna.Value;
+                if (_modelName == null)
+                {
+                    _modelName = typeof(TModel).Name;
+                }
+
+                return _modelName;
             }
         }
+
         public static LinqSql<TModel> _linq;
 
         [JsonIgnore]
@@ -96,65 +83,14 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 if (_linq == null)
                 {
-                    _linq = new LinqSql<TModel>(TableName, ColumnInfos);
+
+                    _linq = new LinqSql<TModel>(TableName, DbFacade.ColumnInfos[ModelName]);
                 }
                 return _linq;
             }
             protected set
             {
                 _linq = value;
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static string ConnectionHash
-        {
-            get
-            {
-                return _connectionHashs[typeof(TModel).Name];
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static string ConnectionName
-        {
-            get
-            {
-                return _connectionNames[typeof(TModel).Name];
-            }
-            protected set
-            {
-                if (_connectionNames == null)
-                {
-                    _connectionNames = new Dictionary<string, string>();
-                }
-                if (!_connectionNames.ContainsKey(typeof(TModel).Name))
-                {
-                    _connectionNames.Add(typeof(TModel).Name, value);
-                }
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static string TableName
-        {
-            get
-            {
-                return _tableNames[typeof(TModel).Name];
-            }
-            protected set
-            {
-                if (_tableNames == null)
-                {
-                    _tableNames = new Dictionary<string, string>();
-                }
-                if (!_tableNames.ContainsKey(typeof(TModel).Name))
-                {
-                    _tableNames.Add(typeof(TModel).Name, value);
-                }
             }
         }
 
@@ -202,6 +138,7 @@ namespace Broccoli.Core.Database.Eloquent
                 Set<string>(value);
             }
         }
+
         [PetaPoco.Column("created_at")]
         public DateTime CreatedAt
         {
@@ -245,107 +182,9 @@ namespace Broccoli.Core.Database.Eloquent
 
         [JsonIgnore]
         [PetaPoco.Ignore]
-        public static PocoData PocoData
-        {
-            get
-            {
-                if (_PocoData == null)
-                {
-                    var db = DbFacade.GetDatabaseConnection(ConnectionName);
-                    _PocoData = db.GetPocoDataForType(typeof(TModel));
-
-                }
-
-                // Return a new list, and leave the cached copy as is.
-                return _PocoData;
-            }
-        }
-
-        private static PocoData _PocoData;
-
-        public static PocoData GetPocoData()
-        {
-            return PocoData;
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
 
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static Dictionary<string, PocoColumn> ColumnInfos
-        {
-            get
-            {
-                if (_ColumnInfos == null)
-                {
-                    // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
-                    // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
 
-                    _ColumnInfos = new Dictionary<string, PocoColumn>();
-
-                    foreach (var kyp in PocoData.Columns)
-                    {
-                        var prop = kyp.Value.PropertyInfo;
-                        ColumnInfos[prop.Name] = kyp.Value;
-                    }
-                }
-
-                return _ColumnInfos;
-            }
-        }
-        private static Dictionary<string, PocoColumn> _ColumnInfos;
-
-        /**
-         * When a property is first set, we store a shallow clone of the value. Used in the _"Save"_ method to determin what relationships should be removed.
-         *
-         * > NOTE: Combine this with a Before and AfterSave event, makes for simple change detection.
-         */
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static Dictionary<string, object> OriginalPropertyBag
-        {
-            get
-            {
-                if (_OriginalPropertyBag == null)
-                {
-                    // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
-                    // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
-
-                    _OriginalPropertyBag = new Dictionary<string, object>();
-
-                    foreach (var kyp in PocoData.Columns)
-                    {
-                        var prop = kyp.Value.PropertyInfo;
-                        if (TypeMapper.IsList(prop.PropertyType))
-                        {
-                            _OriginalPropertyBag[prop.Name] =
-                            Activator.CreateInstance
-                            (
-                                typeof(List<>).MakeGenericType
-                                (
-                                    prop.PropertyType.GenericTypeArguments[0]
-                                )
-                            );
-                        }
-                        else if (prop.PropertyType.IsValueType)
-                        {
-                            _OriginalPropertyBag[prop.Name] = Activator
-                            .CreateInstance(prop.PropertyType);
-                        }
-                        else
-                        {
-                            _OriginalPropertyBag[prop.Name] = null;
-                        }
-                    }
-
-                }
-
-                return _OriginalPropertyBag;
-            }
-        }
-        private static Dictionary<string, object> _OriginalPropertyBag;
 
         /**
          * Entity Property Getter.
@@ -418,7 +257,7 @@ namespace Broccoli.Core.Database.Eloquent
         public virtual void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true)
         {
             // Grab the property
-            var kyo = PocoData.Columns.Single(p => p.Value.PropertyInfo.Name == propName);
+            var kyo = ColumnInfos.Single(p => p.Value.PropertyInfo.Name == propName);
             var prop = kyo.Value.PropertyInfo;
             // Create the property bag dict if it doesn't exist yet.
             if (this.PropertyBag == null)
@@ -540,6 +379,103 @@ namespace Broccoli.Core.Database.Eloquent
                 handler(this, new PropertyChangedEventArgs(prop.Name));
             }
         }
+        #endregion
+
+
+        #region PHASING OUT
+        //* Phasing out the codes below, to move to retrieve necessary information from DbFacade for speedier performance and lighter MODEL
+ 
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string ConnectionName
+        {
+            get
+            {
+                return DbFacade.ConnectionNames[ModelName];
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string TableName
+        {
+            get
+            {
+                return DbFacade.TableNames[ModelName];
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static PocoData PocoData
+        {
+            get
+            {
+                // Return a new list, and leave the cached copy as is.
+                return DbFacade.PocoDatas[ModelName];
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static Dictionary<string, PocoColumn> ColumnInfos
+        {
+            get
+            {
+                return DbFacade.ColumnInfos[ModelName];
+            }
+        }
+
+        /**
+         * When a property is first set, we store a shallow clone of the value. Used in the _"Save"_ method to determin what relationships should be removed.
+         *
+         * > NOTE: Combine this with a Before and AfterSave event, makes for simple change detection.
+         */
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static Dictionary<string, object> OriginalPropertyBag
+        {
+            get
+            {
+                if (_OriginalPropertyBag == null)
+                {
+                    // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
+                    // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
+
+                    _OriginalPropertyBag = new Dictionary<string, object>();
+
+                    foreach (var kyp in PocoData.Columns)
+                    {
+                        var prop = kyp.Value.PropertyInfo;
+                        if (TypeMapper.IsList(prop.PropertyType))
+                        {
+                            _OriginalPropertyBag[prop.Name] =
+                            Activator.CreateInstance
+                            (
+                                typeof(List<>).MakeGenericType
+                                (
+                                    prop.PropertyType.GenericTypeArguments[0]
+                                )
+                            );
+                        }
+                        else if (prop.PropertyType.IsValueType)
+                        {
+                            _OriginalPropertyBag[prop.Name] = Activator
+                            .CreateInstance(prop.PropertyType);
+                        }
+                        else
+                        {
+                            _OriginalPropertyBag[prop.Name] = null;
+                        }
+                    }
+                }
+
+                return _OriginalPropertyBag;
+            }
+        }
+
+        private static Dictionary<string, object> _OriginalPropertyBag;
         #endregion
     }
 }

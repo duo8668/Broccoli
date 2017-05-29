@@ -47,14 +47,35 @@ namespace Broccoli
         {
             var from = DateTime.Parse("2017-05-06");
             Invoice search = new Invoice();
-            Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-            Customer cust = Customer.Find((cccc) => cccc.id == 1);
-            label1.Text = inv.InvoiceNum;
-            label2.Text = inv.ModifiedAt.ToShortDateString();
+            int run = 1;
+            var time1 = DateTime.Now;
+            label1.Text = time1.ToString("HH:mm:ss.fffff");
+
+            Parallel.For(0, run, async (tun) =>
+              {
+                  //Invoice inv = await Task.Run(() => Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222"));
+                  Invoice inv = await Task.Run(() => Invoice.Find(_whereCondition: "WHERE invoice_num=@0", args: "INV-222222"));
+              });
+
+            GC.Collect();
+            /*
+            for (int i = 0; i < run; i++)
+            {
+                //Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+                //Customer cust = Customer.Find((cccc) => cccc.id == 1);
+                Invoice inv = Invoice.Find(_whereCondition: "WHERE invoice_num=@0", args: "INV-222222");
+                //Customer cust = Customer.Find(_whereCondition: "WHERE id=@0", args: 1);
+            }
+            */
+            var time2 = DateTime.Now;
+            label2.Text = time2.ToString("HH:mm:ss.fffff");
+
+            var time3 = time2 - time1;
+            label3.Text = "" + time3.TotalMilliseconds + " ::   Avg: " + (time3.TotalMilliseconds / run);
             //var invs = Invoice.QueryAll();
             //inv = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-222222"));
 
-            var cc = inv.hasMany<Customer>((cccc) => cccc.FirstName == "God", true);
+            // var cc = inv.hasMany<Customer>((cccc) => cccc.FirstName == "God", true);
             /*
             Parallel.ForEach(invs, (iiiiii) =>
             {
@@ -65,18 +86,18 @@ namespace Broccoli
 
                 }
             });
-          */
-            label1.Text = inv.InvoiceNum;
+         
+             label1.Text = inv.InvoiceNum;
             label2.Text = inv.ModifiedAt.ToShortDateString();
             if (inv.InvoiceDateTime.HasValue)
             {
-                label3.Text = inv.InvoiceDateTime.Value.ToShortDateString();
+                  label3.Text = inv.InvoiceDateTime.Value.ToShortDateString();
             }
             else
             {
-                label3.Text = "--------------------------";
+                  label3.Text = "--------------------------";
             }
-
+             */
         }
 
         private string testArgs(string main = "", params object[] args)

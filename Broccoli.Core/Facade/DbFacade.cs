@@ -34,6 +34,9 @@ namespace Broccoli.Core.Facade
         //* All mapped table names cache
         private static Dictionary<string, string> _tableNamesCache = new Dictionary<string, string>();
 
+        //* All reverse mapped model names cache
+
+        private static Dictionary<string, string> _tableToModelNamesCache = new Dictionary<string, string>();
         // the key is the modelName and the value is the PocoData
         private static Dictionary<string, PocoData> _pocoDatas = new Dictionary<string, PocoData>();
 
@@ -83,6 +86,14 @@ namespace Broccoli.Core.Facade
             get
             {
                 return _tableNamesCache;
+            }
+        }
+
+        public static Dictionary<string, string> TableToModelNames
+        {
+            get
+            {
+                return _tableToModelNamesCache;
             }
         }
 
@@ -255,6 +266,7 @@ namespace Broccoli.Core.Facade
             if (tna != null)
             {
                 _tableNamesCache.Add(model.Name, tna.Value);
+                _tableToModelNamesCache.Add(tna.Value, model.Name);
             }
         }
 

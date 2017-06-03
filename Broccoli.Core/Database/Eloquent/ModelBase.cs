@@ -84,7 +84,7 @@ namespace Broccoli.Core.Database.Eloquent
                 if (_linq == null)
                 {
 
-                    _linq = new LinqSql<TModel>(TableName, DbFacade.ColumnInfos[ModelName]);
+                    _linq = new LinqSql<TModel>();
                 }
                 return _linq;
             }
@@ -183,9 +183,7 @@ namespace Broccoli.Core.Database.Eloquent
         [JsonIgnore]
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
-
-
-
+        
         /**
          * Entity Property Getter.
          * All _"mapped"_ properties need to implement this as their Getter.

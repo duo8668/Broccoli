@@ -47,17 +47,16 @@ namespace Broccoli
         {
             var from = DateTime.Parse("2017-05-06");
             Invoice search = new Invoice();
-            int run = 1;
+            int run = 1000;
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
-            Parallel.For(0, run, async (tun) =>
-              {
-                  //Invoice inv = await Task.Run(() => Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222"));
-                  Invoice inv = await Task.Run(() => Invoice.Find(_whereCondition: "WHERE invoice_num=@0", args: "INV-222222"));
-              });
+            for (int i = 0; i < run; i++)
+            {
+                Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+                //Invoice inv = Invoice.Find(_whereCondition: "invoice_num=@0", args: "INV-222222");
+            }
 
-            GC.Collect();
             /*
             for (int i = 0; i < run; i++)
             {

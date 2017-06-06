@@ -22,6 +22,7 @@ namespace Broccoli.Core.Database.Builder
         private LinqSql<TModel> _theSql;
 
         private static string prefix = "a";
+        private static Regex rxSelectStatement = new Regex(@"select(?<selectCols>[a-zA-Z0-9*\s]+)from(?<tbl>[a-zA-Z0-9*_\s]+)", RegexOptions.Compiled);
         private int count = 0;
 
         protected static readonly char[] selectSpliter = ",".ToCharArray();
@@ -32,6 +33,7 @@ namespace Broccoli.Core.Database.Builder
         private PredicateConverter _predicateConverter;
 
         string _tableName;
+        string _exclusiveFromTable;
         string _modelName;
 
         public string SQL
@@ -92,6 +94,7 @@ namespace Broccoli.Core.Database.Builder
 
         public LinqSql<TModel> From(string thisTableName)
         {
+            _exclusiveFromTable = thisTableName;
             return this;
         }
 
@@ -102,7 +105,7 @@ namespace Broccoli.Core.Database.Builder
 
         public SqlJoinHelper<TModel> Join(string targetTable)
         {
-            return new SqlJoinHelper<TModel>(this, targetTable);
+            return new SqlJoinHelper<TModel>(this, _tableName, targetTable);
         }
 
         public LinqSql<TModel> On(SqlJoinHelper<TModel> _on)
@@ -133,7 +136,6 @@ namespace Broccoli.Core.Database.Builder
 
         #endregion
 
-
         private void Build()
         {
             _sql = null;
@@ -152,16 +154,26 @@ namespace Broccoli.Core.Database.Builder
                 ? string.Join(", ", (from c in DbFacade.PocoDatas[_modelName].QueryColumns select _tableName + "." + c).ToArray())
                 : "NULL";
 
-            _sql = "SELECT " + cols + " FROM " + _tableName;
+            _sql = "SELECT " + cols + " FROM " + (string.IsNullOrEmpty(_exclusiveFromTable) ? _tableName : _exclusiveFromTable);
         }
+
         private void BuildJoin()
         {
-
+            string onQuery = "";
+            foreach (var iii in _joinClause.Values)
+            {
+                onQuery += iii.ToString() + " ";
+            }
+            _sql += onQuery;
         }
+
         private void BuildWhere()
         {
-            string whereQuery = " WHERE ";
-
+            string whereQuery = "";
+            if (_whereCondition.Count() > 0)
+            {
+                whereQuery += " WHERE ";
+            }
             while (_whereCondition.Count() > 0)
             {
                 var theWhere = _whereCondition.Dequeue();
@@ -176,6 +188,7 @@ namespace Broccoli.Core.Database.Builder
 
             _sql += whereQuery;
         }
+
         public void Dispose()
         {
             _whereCondition.Clear();
@@ -198,12 +211,21 @@ namespace Broccoli.Core.Database.Builder
     public class SqlJoinHelper<TModel> : IDisposable where TModel : Model<TModel>, new()
     {
         private readonly LinqSql<TModel> _sql;
+        public string MyTable { get; private set; }
         public string TargetTable { get; private set; }
-        public string TurnCode;
+        public string MyKey { get; private set; }
+        public string HerKey { get; private set; }
+        public string AdditionalCondition { get; private set; }
 
-        public SqlJoinHelper(LinqSql<TModel> sql, string targetTable)
+        public Func<TableInfo, string> fnMyKey;
+        public Func<TableInfo, string> fnHerKey;
+
+        private Queue<SqlWhereHelper<TModel>> _whereCondition = new Queue<SqlWhereHelper<TModel>>();
+
+        public SqlJoinHelper(LinqSql<TModel> sql, string myTable, string targetTable)
         {
             _sql = sql;
+            MyTable = myTable;
             TargetTable = targetTable;
         }
 
@@ -212,18 +234,49 @@ namespace Broccoli.Core.Database.Builder
             return _sql;
         }
 
+        public LinqSql<TModel> On(Expression<Func<TModel, string>> myOwnKey = null, Expression<Func<TModel, string>> herOwnKey = null, Expression<Func<TModel, bool>> predicate = null, params object[] args)
+        {
+            return _sql.On(this);
+        }
+
+        public LinqSql<TModel> On(Expression<Func<TModel, bool>> predicate = null, params object[] args)
+        {
+            if (predicate != null)
+            {
+                using (var prc = new PredicateConverter())
+                {
+                    prc.Visit(predicate.Body);
+                    return On(prc.Sql, prc.Parameters);
+                }
+            }
+            else
+            {
+                return _sql.On(this);
+            }
+        }
+
         public LinqSql<TModel> On(string myKey = "", string herKey = "", string additionalCondition = "", params object[] args)
         {
+            MyKey = myKey;
+            HerKey = herKey;
+            AdditionalCondition = additionalCondition;
+            return _sql.On(this);
+        }
+
+        public LinqSql<TModel> On(string condition = "", params object[] args)
+        {
+            AdditionalCondition = condition;
             return _sql.On(this);
         }
 
         public override string ToString()
         {
-            return base.ToString();
+            return " JOIN " + TargetTable + " ON " + MyKey + "=" + HerKey + (string.IsNullOrEmpty(AdditionalCondition) ? "" : " AND " + AdditionalCondition);
         }
 
         public void Dispose()
         {
+            _whereCondition.Clear();
             _sql.Dispose();
         }
     }
@@ -244,12 +297,30 @@ namespace Broccoli.Core.Database.Builder
             }
         }
 
+        public SqlWhereHelper()
+        {
+
+        }
+
         public SqlWhereHelper(string sql, params object[] args)
         {
             _sql = sql;
             Arguments = args;
         }
 
+        public PredicateConverter VisitWhereCondition(Expression<Func<TModel, bool>> predicate, params object[] args)
+        {
+            if (predicate != null)
+            {
+                var _predicateConverter = new PredicateConverter();
+                _predicateConverter.Visit(predicate.Body);
+                return _predicateConverter;
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         public void Dispose()
         {

@@ -24,21 +24,31 @@ namespace Broccoli.Core.Database.Utils
 
         public virtual string GenerateIntermediateTable(string thisTable, string thatTable)
         {
-            var thisTablesSplit = thisTable.Split(_identitySeparator);
-            var thatTablesSplit = thatTable.Split(_identitySeparator);
-            var len1 = thisTablesSplit.Length;
-            var len2 = thatTablesSplit.Length;
-            if (len1 > 1 && len2 > 1)
+            try
             {
-                return string.Concat(thisTablesSplit[len1--], IdentitySeparator, thatTablesSplit[len2--]);
+                var thisTablesSplit = thisTable.Split(_identitySeparator);
+                var thatTablesSplit = thatTable.Split(_identitySeparator);
+                var len1 = thisTablesSplit.Length;
+                var len2 = thatTablesSplit.Length;
+                if (len1 > 1 && len2 > 1)
+                {
+                    len1--;
+                    len2--;
+                    return string.Concat(thisTablesSplit[len1], IdentitySeparator, thatTablesSplit[len2]);
+                }
+                else
+                {
+                    return null;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return null;
+                throw ex;
             }
+
         }
 
-        public virtual string GenerateOnClauseForForeignKey(string thisTable, string thatTable)
+        public virtual string GenerateOnClauseForeignKey(string thisTable, string thatTable)
         {
             var thisTablesSplit = thisTable.Split(_identitySeparator);
             var thatTablesSplit = thatTable.Split(_identitySeparator);
@@ -46,7 +56,8 @@ namespace Broccoli.Core.Database.Utils
             var len2 = thatTablesSplit.Length;
             if (len1 > 1 && len2 > 1)
             {
-                return string.Concat(thisTable, ".id", "=", thatTable, ".", thisTablesSplit[len1--], "Id");
+                len1--;
+                return string.Concat(thatTable, ".", thisTablesSplit[len1], "Id");
             }
             else
             {
@@ -58,6 +69,6 @@ namespace Broccoli.Core.Database.Utils
     public interface IForeignKeyGenerator
     {
         string GenerateIntermediateTable(string thisTable, string thatTable);
-        string GenerateOnClauseForForeignKey(string thisTable, string thatTable);
+        string GenerateOnClauseForeignKey(string thisTable, string thatTable);
     }
 }

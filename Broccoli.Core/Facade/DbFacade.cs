@@ -164,6 +164,7 @@ namespace Broccoli.Core.Facade
                 InitTableNamesCache(model);
                 DoPocoDatasInitialization(model);
                 DoPocoColumnsInitialization(model);
+                DoDynamicModelInitialization(model);
             });
         }
 
@@ -319,30 +320,37 @@ namespace Broccoli.Core.Facade
         //*
         public static IBroccoliDatabase GetDatabaseConnection(string connectionStringName)
         {
-            return new BroccoliDatabase(connectionStringName);
+            return new BroccoliDatabase(connectionStringName) { EnableAutoSelect = false };
         }
 
         //* 
         public static string GenerateIntermediateTable(string thisTable, string thatTable)
         {
-            var foreignTable = _foreignKeyGenerator.GenerateIntermediateTable(thisTable, thatTable);
-
-            if (!_dbAllTablesCache.ContainsValue(foreignTable))
+            try
             {
-                foreignTable = _foreignKeyGenerator.GenerateIntermediateTable(thatTable, thisTable);
-            }
+                var foreignTable = _foreignKeyGenerator.GenerateIntermediateTable(thisTable, thatTable);
 
-            if (!_dbAllTablesCache.ContainsValue(foreignTable))
-            {
-                foreignTable = null;
+                if (!_dbAllTablesCache.ContainsValue(foreignTable))
+                {
+                    foreignTable = _foreignKeyGenerator.GenerateIntermediateTable(thatTable, thisTable);
+                }
+
+                if (!_dbAllTablesCache.ContainsValue(foreignTable))
+                {
+                    foreignTable = null;
+                }
+                return foreignTable;
             }
-            return foreignTable;
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         //*
-        public static string GenerateOnClauseForForeignKey(string thisTable, string thatTable)
+        public static string GenerateOnClauseForeignKey(string thisTable, string thatTable)
         {
-            return _foreignKeyGenerator.GenerateOnClauseForForeignKey(thisTable, thatTable);
+            return _foreignKeyGenerator.GenerateOnClauseForeignKey(thisTable, thatTable);
         }
     }
 }

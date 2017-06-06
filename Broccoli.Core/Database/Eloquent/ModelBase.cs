@@ -42,11 +42,13 @@ namespace Broccoli.Core.Database.Eloquent
         }
     }
 
+    [PetaPoco.PrimaryKey("id")]
     public class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
     {
         private List<object> _DiscoveredEntities;
 
         protected static string _modelName;
+        protected static Dictionary<string, PropertyInfo> _propertyInfos;
 
         public ModelBase()
         {
@@ -72,6 +74,38 @@ namespace Broccoli.Core.Database.Eloquent
                 return _modelName;
             }
         }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string ConnectionName
+        {
+            get
+            {
+                return DbFacade.ConnectionNames[ModelName];
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static string TableName
+        {
+            get
+            {
+                return DbFacade.TableNames[ModelName];
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static PocoData PocoData
+        {
+            get
+            {
+                // Return a new list, and leave the cached copy as is.
+                return DbFacade.PocoDatas[ModelName];
+            }
+        }
+
 
         public static LinqSql<TModel> _linq;
 
@@ -113,8 +147,8 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
-        [PetaPoco.Column]
-        public long id
+        [PetaPoco.Column("id")]
+        public long Id
         {
             get
             {
@@ -183,7 +217,21 @@ namespace Broccoli.Core.Database.Eloquent
         [JsonIgnore]
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
-        
+
+        [PetaPoco.Ignore]
+        public static Dictionary<string, PropertyInfo> PropertyInfos
+        {
+            get
+            {
+                if (_propertyInfos == null)
+                {
+                    _propertyInfos = DbFacade.ColumnInfos[ModelName].Values.Select(kyp => kyp.PropertyInfo).ToDictionary(item => item.Name, item => item);
+                }
+
+                return _propertyInfos;
+            }
+        }
+
         /**
          * Entity Property Getter.
          * All _"mapped"_ properties need to implement this as their Getter.
@@ -193,7 +241,7 @@ namespace Broccoli.Core.Database.Eloquent
          * 		public string Bar { get { return Get<string>(); } set... }
          * 	}
          */
-        public virtual T Get<T>([CallerMemberName] string propName = "", bool loadFromDiscovered = true, bool loadFromDb = true)
+        public virtual T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true)
         {
             // If the property bag hasn't been created yet then obviously we won't find anything in it. Even if someone asks for a related
             // entity, we must either have an Id or the entity / entities will have been "Set" and thus the the PropertyBag will exist.
@@ -207,7 +255,7 @@ namespace Broccoli.Core.Database.Eloquent
             }
 
             // Bail out if we have been told not to load anything from our discovered list or from the database.
-            if (!loadFromDiscovered || !loadFromDb)
+            if (!loadFromDb)
             {
                 return default(T);
             }
@@ -255,8 +303,8 @@ namespace Broccoli.Core.Database.Eloquent
         public virtual void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true)
         {
             // Grab the property
-            var kyo = ColumnInfos.Single(p => p.Value.PropertyInfo.Name == propName);
-            var prop = kyo.Value.PropertyInfo;
+            var prop = PropertyInfos[propName];
+
             // Create the property bag dict if it doesn't exist yet.
             if (this.PropertyBag == null)
             {
@@ -270,9 +318,8 @@ namespace Broccoli.Core.Database.Eloquent
                 //   this.SaveDiscoveredEntities(prop, value);
             }
 
-            // If the property does not already have
-            // a value, set it's original value.
-            if (this.Get<object>(propName, loadFromDiscovered: false, loadFromDb: false) == null)
+            // If the property does not already have a value, set it's original value.
+            if (this.Get<object>(propName, loadFromDb: false) == null)
             {
                 if (value != null && TypeMapper.IsListOfEntities(value))
                 {
@@ -287,8 +334,7 @@ namespace Broccoli.Core.Database.Eloquent
                 }
             }
 
-            // Wrap any normal Lists in a BindingList so that we can track when
-            // new entities are added so that we may save those entities to our
+            // Wrap any normal Lists in a BindingList so that we can track when  new entities are added so that we may save those entities to our
             // discovered list.
             dynamic propertyBagValue;
             if (value != null && TypeMapper.IsList(value))
@@ -306,7 +352,7 @@ namespace Broccoli.Core.Database.Eloquent
                 (
                     (sender, e) =>
                     {
-                        //if (!triggerChangeEvent) return;
+                        if (!triggerChangeEvent) return;
 
                         switch (e.ListChangedType)
                         {
@@ -334,17 +380,23 @@ namespace Broccoli.Core.Database.Eloquent
             if (triggerChangeEvent) this.FirePropertyChanged(prop);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        private List<PropertyInfo> _modifiedProps = new List<PropertyInfo>();
+
+        /// <summary>
+        /// 
+        /// </summary>
         [JsonIgnore]
         [PetaPoco.Ignore]
         public List<PropertyInfo> ModifiedProps
         {
             get
             {
-                return this._ModifiedProps;
+                return this._modifiedProps;
             }
         }
-
-        private List<PropertyInfo> _ModifiedProps = new List<PropertyInfo>();
 
         /**
          * This just keeps a list of all the mapped properties that have
@@ -357,73 +409,37 @@ namespace Broccoli.Core.Database.Eloquent
                 this.ModifiedProps.Add(changedProp);
             }
         }
+        #endregion
 
+        #region Fire Property event
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(PropertyInfo prop) { }
         public void FirePropertyChanged(PropertyInfo prop)
         {
-            // Run some of our own code first.
-            this.UpdateModified(prop);
-            // this.SaveDiscoveredEntities(prop);
-
-            // Run the OnPropertyChanged method. This allows models to override
-            // the method and not have to worry about calling the base method.
-            this.OnPropertyChanged(prop);
-
-            // Now fire off any other attached handlers
-            PropertyChangedEventHandler handler = this.PropertyChanged;
-            if (handler != null)
+            // Run some of our own code first.            
+            if (_OriginalPropertyBagCount > 0)
             {
-                handler(this, new PropertyChangedEventArgs(prop.Name));
+                if (PropertyBag[prop.Name] != OriginalPropertyBag[prop.Name])
+                {
+                    this.UpdateModified(prop);
+
+                    // Run the OnPropertyChanged method. This allows models to override
+                    // the method and not have to worry about calling the base method.
+                    this.OnPropertyChanged(prop);
+
+                    // Now fire off any other attached handlers
+                    PropertyChangedEventHandler handler = this.PropertyChanged;
+                    if (handler != null)
+                    {
+                        handler(this, new PropertyChangedEventArgs(prop.Name));
+                    }
+                }
             }
         }
         #endregion
 
-
         #region PHASING OUT
         //* Phasing out the codes below, to move to retrieve necessary information from DbFacade for speedier performance and lighter MODEL
- 
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static string ConnectionName
-        {
-            get
-            {
-                return DbFacade.ConnectionNames[ModelName];
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static string TableName
-        {
-            get
-            {
-                return DbFacade.TableNames[ModelName];
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static PocoData PocoData
-        {
-            get
-            {
-                // Return a new list, and leave the cached copy as is.
-                return DbFacade.PocoDatas[ModelName];
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static Dictionary<string, PocoColumn> ColumnInfos
-        {
-            get
-            {
-                return DbFacade.ColumnInfos[ModelName];
-            }
-        }
 
         /**
          * When a property is first set, we store a shallow clone of the value. Used in the _"Save"_ method to determin what relationships should be removed.
@@ -467,6 +483,7 @@ namespace Broccoli.Core.Database.Eloquent
                             _OriginalPropertyBag[prop.Name] = null;
                         }
                     }
+                    _OriginalPropertyBagCount = _OriginalPropertyBag.Count();
                 }
 
                 return _OriginalPropertyBag;
@@ -474,6 +491,7 @@ namespace Broccoli.Core.Database.Eloquent
         }
 
         private static Dictionary<string, object> _OriginalPropertyBag;
+        private static int _OriginalPropertyBagCount;
         #endregion
     }
 }

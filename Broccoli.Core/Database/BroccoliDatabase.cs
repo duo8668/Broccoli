@@ -7,7 +7,7 @@ using PetaPoco;
 
 namespace Broccoli.Core.Database
 {
-    public class BroccoliDatabase:PetaPoco.Database,IBroccoliDatabase
+    public class BroccoliDatabase : PetaPoco.Database, IBroccoliDatabase
     {
         public BroccoliDatabase(string connectionStringName) : base(connectionStringName)
         {
@@ -23,6 +23,6 @@ namespace Broccoli.Core.Database
             var pd = GetPocoDataForType(poco.GetType());
             return PocoData.ForObject(poco, pd.TableInfo.PrimaryKey, DefaultMapper);
         }
-         
+
     }
 }

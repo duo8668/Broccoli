@@ -22,7 +22,7 @@ namespace Broccoli.Core.Database.Utils.Converters
        * 	// converter.Parameters == new object[] { 1 }
        * ```
        */
-    public class PredicateConverter : ExpressionVisitor
+    public class PredicateConverter : ExpressionVisitor, System.IDisposable
     {
         /**
          * The portion of the SQL query that will come after a WHERE clause.
@@ -69,7 +69,17 @@ namespace Broccoli.Core.Database.Utils.Converters
             // Add the operator in the middle
             switch (node.NodeType)
             {
-                case ExpressionType.Equal: this.sql.Append("="); break;
+                case ExpressionType.Equal:
+
+                    if (node.Right.ToString().Contains("%"))
+                    {
+                        this.sql.Append("LIKE");
+                    }
+                    else
+                    {
+                        this.sql.Append("=");
+                    }
+                    break;
                 case ExpressionType.NotEqual: this.sql.Append("!="); break;
                 case ExpressionType.GreaterThan: this.sql.Append(">"); break;
                 case ExpressionType.GreaterThanOrEqual: this.sql.Append(">="); break;
@@ -78,7 +88,9 @@ namespace Broccoli.Core.Database.Utils.Converters
 
                 case ExpressionType.And:
                 case ExpressionType.AndAlso:
+
                     this.sql.Append("AND");
+
                     break;
 
                 case ExpressionType.Or:
@@ -223,5 +235,42 @@ namespace Broccoli.Core.Database.Utils.Converters
 
             return node;
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: dispose managed state (managed objects).
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                disposedValue = true;
+                sql.Clear();
+                parameters.Clear();
+            }
+        }
+
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~PredicateConverter() {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

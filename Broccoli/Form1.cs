@@ -51,11 +51,23 @@ namespace Broccoli
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
-            for (int i = 0; i < run; i++)
-            {
-                Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-                //Invoice inv = Invoice.Find(_whereCondition: "invoice_num=@0", args: "INV-222222");
-            }
+            search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            Parallel.For(0, run, (s) =>
+              {
+                  var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true);
+
+                  foreach (var ccc in custs)
+                  {
+
+                  }
+
+                  search.InvoiceNum = "INV-333333";
+              });
+            // for (int i = 0; i < run; i++)
+            // {
+            //      search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            //search = Invoice.Find(_whereCondition: "invoice_num=@0", args: "INV-222222");
+            //  }
 
             /*
             for (int i = 0; i < run; i++)
@@ -71,6 +83,7 @@ namespace Broccoli
 
             var time3 = time2 - time1;
             label3.Text = "" + time3.TotalMilliseconds + " ::   Avg: " + (time3.TotalMilliseconds / run);
+            search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
             //var invs = Invoice.QueryAll();
             //inv = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-222222"));
 

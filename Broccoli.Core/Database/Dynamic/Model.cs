@@ -227,7 +227,7 @@ namespace Broccoli.Core.Database.Dynamic
             return this.InvokeStatic("FindAll", _whereCondition, withTrashed, args);
         }
 
-        public dynamic FindAll<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false, params object[] args)
+        public dynamic FindAll<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
         {
             return this.InvokeStatic("FindAll", predicate, withTrashed, args);
         }

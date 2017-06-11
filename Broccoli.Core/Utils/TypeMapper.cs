@@ -237,8 +237,7 @@ namespace Broccoli.Core.Utils
         private static List<Type> ClrTypes;
 
         /**
-         * Given a Type, we will attempt to work out if the type is a built in
-         * simple primative type, such as String, Decimal, Boolean, etc.
+         * Given a Type, we will attempt to work out if the type is a built in simple primative type, such as String, Decimal, Boolean, etc.
          *
          * ```cs
          *  if (TypeMapper.IsClrType(typeof(string)))
@@ -305,8 +304,7 @@ namespace Broccoli.Core.Utils
         }
 
         /**
-         * Given a Value, we will attempt to work out if the type is a built in
-         * simple primative type, such as String, Decimal, Boolean...
+         * Given a Value, we will attempt to work out if the type is a built in  simple primative type, such as String, Decimal, Boolean...
          *
          * ```cs
          *  if (TypeMapper.IsClrType("hello"))
@@ -488,17 +486,9 @@ namespace Broccoli.Core.Utils
         {
             if (type.IsGenericType)
             {
-                if (type.GetGenericTypeDefinition() == typeof(IList<>))
-                {
-                    return true;
-                }
-
-                if (type.GetGenericTypeDefinition() == typeof(List<>))
-                {
-                    return true;
-                }
-
-                if (type.GetGenericTypeDefinition() == typeof(BindingList<>))
+                if (type.GetGenericTypeDefinition() == typeof(IList<>) 
+                    || type.GetGenericTypeDefinition() == typeof(List<>) 
+                    || type.GetGenericTypeDefinition() == typeof(BindingList<>))
                 {
                     return true;
                 }

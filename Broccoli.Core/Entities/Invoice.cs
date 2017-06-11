@@ -32,7 +32,17 @@ namespace Broccoli.Core.Entities
         }
 
         [PetaPoco.Column("invoice_datetime")]
-        public DateTime? InvoiceDateTime { get; set; }
+        public DateTime? InvoiceDateTime
+        {
+            get
+            {
+                return Get<DateTime?>();
+            }
+            set
+            {
+                Set<DateTime?>(value);
+            }
+        }
 
     }
 }

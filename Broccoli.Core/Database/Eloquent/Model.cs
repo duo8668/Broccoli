@@ -1,23 +1,10 @@
-﻿using Broccoli.Core.Facade;
-using Broccoli.Core.Utils;
-using Broccoli.Core.Extensions;
-using Inflector;
-using Newtonsoft.Json;
+﻿using Broccoli.Core.Database.Builder;
+using Broccoli.Core.Database.Events;
+using Broccoli.Core.Facade;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using Broccoli.Core.Database.Utils;
-using Broccoli.Core.Database.Dynamic;
-using System.Diagnostics;
-using Broccoli.Core.Database.Utils.Converters;
-using Broccoli.Core.Database.Builder;
 
 namespace Broccoli.Core.Database.Eloquent
 {
@@ -29,9 +16,8 @@ namespace Broccoli.Core.Database.Eloquent
     [PetaPoco.PrimaryKey("id")]
     public class Model<TModel> : ModelBase<TModel> where TModel : Model<TModel>, new()
     {
-
         protected Func<PetaPoco.TableInfo, string> fnHasManyMyKey = tblInfo => tblInfo.TableName + "." + tblInfo.PrimaryKey;
-
+        protected Func<string, string, string> fnStdGenerateForeignKey = DbFacade.GenerateOnClauseForeignKey;
 
         public static LinqSql<TModel> FilterTrashed(bool withTrashed = false)
         {
@@ -90,9 +76,16 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static List<TModel> FindAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
-            using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
+            if (predicate != null)
             {
-                return FindAll(_helper.Sql, withTrashed, _helper.Parameters);
+                using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
+                {
+                    return FindAll(_helper.Sql, withTrashed, _helper.Parameters);
+                }
+            }
+            else
+            {
+                return FindAll("", withTrashed, args);
             }
         }
 
@@ -110,7 +103,7 @@ namespace Broccoli.Core.Database.Eloquent
         /// <param name="_whereCondition"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        public static List<TModel> FindAll(string _whereCondition = "", params object[] args)
+        public static List<TModel> FindAll(string _whereCondition, params object[] args)
         {
             return QueryAll(_whereCondition, args).ToList();
         }
@@ -139,55 +132,101 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
-        public static IEnumerable<TModel> QueryAll(string query = "", params object[] args)
+        public static IEnumerable<TModel> QueryAll(string query, params object[] args)
         {
-            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(query, args).ToList();
+            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(query, PocoData, args);
         }
 
-        public static List<TModel> FindPage(long page, long itemsPerPage, bool withTrashed = false, params object[] args)
+        public static List<TModel> FindPage(long page, long itemsPerPage, string _sql, bool withTrashed = false, params object[] args)
         {
-            var _sql = "";
-            //(long page, long itemsPerPage, string sqlCount, object[] countArgs, string sqlPage, object[] pageArgs)
             return DbFacade.GetDatabaseConnection(ConnectionName).Page<TModel>(page, itemsPerPage, _sql, null).Items;
         }
 
-        public static TModel Save(TModel _data)
+        public TModel Save()
         {
             //* check if data exists, if not exists then update
+            if (Id == 0)
+            {
 
-            return default(TModel);
+            }
+            else
+            {
+                var recordsToUpdate = (from ModifiedProp in ModifiedProps
+                                       select new { PocoColumns[ModifiedProp.Name].ColumnName, val = (dynamic)ModifiedProp.GetValue(this) }
+                                     );
+                var spare = FilterTrashed().Update();
+                foreach (var red in recordsToUpdate)
+                {
+                    spare.Set(red.ColumnName, red.val);
+                }
+                spare = spare.Where((model) => model.Id == Id);
+                var sql = PetaPoco.ParametersHelper.ProcessParams(spare.SQL, spare.Arguments);
+               // var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(sql, spare.Arguments);
+
+                return Find((model) => model.Id == Id, args: Id);
+            }
+
+            return (TModel)this;
         }
 
-        public virtual List<T> hasMany<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
+        public virtual IEnumerable<T> hasMany<T>(Expression<Func<TModel, T, bool>> onPredicate, Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
         {
-            try
-            {
-                //* Initialize target model
-                var targetModel = DbFacade.DynamicModels[typeof(T).Name];
 
-                //* Get this table and that table name
-                var thisTableName = TableName;
-                var thatTableName = targetModel.PocoData.TableInfo.TableName;
+            return null;
+        }
 
-                //* Guessing intermediate table name
-                var intermediaTable = DbFacade.GenerateIntermediateTable(thisTableName, thatTableName);
+        public virtual IEnumerable<T> hasMany<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
+        {
+            //* Initialize target model
+            var targetModel = DbFacade.DynamicModels[typeof(T).Name];
 
-                // PocoData.TableInfo.TableName + "." + PocoData.TableInfo.PrimaryKey
-                return targetModel.FindAll<T>(
-                    (lin) => lin.Select(thatTableName + ".*")
-                                .From(thisTableName)
-                                .Join(intermediaTable)
-                                .On(fnHasManyMyKey(PocoData.TableInfo), DbFacade.GenerateOnClauseForeignKey(thisTableName, intermediaTable), "")
-                                .Join(thatTableName)
-                                .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), DbFacade.GenerateOnClauseForeignKey(thatTableName, intermediaTable), "")
-                                .Where(predicate));
+            //* Get this table and that table name
+            var thisTableName = TableName;
+            var thatTableName = targetModel.PocoData.TableInfo.TableName;
 
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            //* Guessing intermediate table name
+            var intermediaTable = DbFacade.GenerateIntermediateTable(thisTableName, thatTableName);
 
+            // Call the FindAll to return the result
+            var results = targetModel.FindAll<T>(
+                (lin) => lin.Select(thatTableName + ".*")
+                            .From(thisTableName)
+                            .Join(intermediaTable)
+                            .On(fnHasManyMyKey(PocoData.TableInfo), fnStdGenerateForeignKey(thisTableName, intermediaTable), "")
+                            .Join(thatTableName)
+                            .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
+                            .Where(predicate));
+
+            DynamicListEvent.triggerDynamicListListening<T>(results);
+
+            return results;
+        }
+
+        public virtual T hasOne<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
+        {
+            //* Initialize target model
+            var targetModel = DbFacade.DynamicModels[typeof(T).Name];
+
+            //* Get this table and that table name
+            var thisTableName = TableName;
+            var thatTableName = targetModel.PocoData.TableInfo.TableName;
+
+            //* Guessing intermediate table name
+            var intermediaTable = DbFacade.GenerateIntermediateTable(thisTableName, thatTableName);
+
+            // Call the FindAll to return the result
+            var results = targetModel.Find<T>(
+                (lin) => lin.Select(thatTableName + ".*")
+                            .From(thisTableName)
+                            .Join(intermediaTable)
+                            .On(fnHasManyMyKey(PocoData.TableInfo), fnStdGenerateForeignKey(thisTableName, intermediaTable), "")
+                            .Join(thatTableName)
+                            .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
+                            .Where(predicate));
+
+            DynamicListEvent.triggerDynamicListListening<T>(results);
+
+            return results;
         }
 
     }

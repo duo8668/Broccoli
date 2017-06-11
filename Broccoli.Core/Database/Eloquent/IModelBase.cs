@@ -13,8 +13,8 @@ namespace Broccoli.Core.Database.Eloquent
         DateTime CreatedAt { get; set; }
         DateTime ModifiedAt { get; set; }
         DateTime? DeletedAt { get; set; }
-        T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true);
-        void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true);
+        T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true, bool isAList = false);
+        void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true, bool isAList = false);
         void FirePropertyChanged(System.Reflection.PropertyInfo prop);
     }
 }

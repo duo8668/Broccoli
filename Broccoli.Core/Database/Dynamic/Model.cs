@@ -222,6 +222,16 @@ namespace Broccoli.Core.Database.Dynamic
             return this.InvokeStatic("Find", entity, withTrashed);
         }
 
+        public dynamic Find<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
+        {
+            return this.InvokeStatic("Find", predicate, withTrashed, args);
+        }
+
+        public dynamic Find<T>(Func<LinqSql<T>, LinqSql<T>> _linq, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
+        {
+            return this.InvokeStatic("Find", _linq, withTrashed, args);
+
+        }
         public dynamic FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
         {
             return this.InvokeStatic("FindAll", _whereCondition, withTrashed, args);
@@ -232,10 +242,11 @@ namespace Broccoli.Core.Database.Dynamic
             return this.InvokeStatic("FindAll", predicate, withTrashed, args);
         }
 
-        public dynamic FindAll<T>(Func<LinqSql<T>, LinqSql<T>> _linq, bool withTrashed = false, params object[] args) where T: Eloquent.Model<T>,new()
+        public dynamic FindAll<T>(Func<LinqSql<T>, LinqSql<T>> _linq, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
         {
             return this.InvokeStatic("FindAll", _linq, withTrashed, args);
         }
+
         public bool Exists(int key, bool withTrashed = false, params object[] args)
         {
             return this.InvokeStatic<bool>("Exists", key, withTrashed);
@@ -280,7 +291,7 @@ namespace Broccoli.Core.Database.Dynamic
         {
             return this.InvokeStatic("First", predicate, withTrashed);
         }
-
+         
         public dynamic FirstOrDefault(bool withTrashed = false)
         {
             return this.InvokeStatic("FirstOrDefault", withTrashed);
@@ -485,5 +496,17 @@ namespace Broccoli.Core.Database.Dynamic
         {
             return this.Instance.Save();
         }
+
+
+        public dynamic QueryAll<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
+        {
+            return this.InvokeStatic("QueryAll", predicate, withTrashed, args);
+        }
+
+        public dynamic QueryAll<T>(Func<LinqSql<T>, LinqSql<T>> _linq, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
+        {
+            return this.InvokeStatic("QueryAll", _linq, withTrashed, args);
+        }
+
     }
 }

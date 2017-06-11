@@ -15,7 +15,6 @@ namespace Graceful.Query
     using System;
     using System.Linq;
     using Graceful.Utils.Visitors;
-    using Newtonsoft.Json.Linq;
     using System.Linq.Expressions;
     using System.Collections.Generic;
     using ExpressionBuilder = Graceful.Dynamic.ExpressionBuilder;

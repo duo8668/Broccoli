@@ -35,8 +35,8 @@ namespace Broccoli.Core.Facade
         private static Dictionary<string, string> _tableNamesCache = new Dictionary<string, string>();
 
         //* All reverse mapped model names cache
-
         private static Dictionary<string, string> _tableToModelNamesCache = new Dictionary<string, string>();
+
         // the key is the modelName and the value is the PocoData
         private static Dictionary<string, PocoData> _pocoDatas = new Dictionary<string, PocoData>();
 
@@ -168,6 +168,10 @@ namespace Broccoli.Core.Facade
             });
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
         protected static void DoPocoModelInitialization(Type model)
         {
             var method = model.GetMethod("Init", BindingFlags.Static
@@ -177,6 +181,10 @@ namespace Broccoli.Core.Facade
             method.Invoke(null, null);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
         protected static void DoPocoDatasInitialization(Type model)
         {
             var db = DbFacade.GetDatabaseConnection(_connectionNamesCache[model.Name]);
@@ -187,6 +195,10 @@ namespace Broccoli.Core.Facade
             pd = null;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
         protected static void DoPocoColumnsInitialization(Type model)
         {
             var cis = new Dictionary<string, PocoColumn>();
@@ -201,6 +213,10 @@ namespace Broccoli.Core.Facade
             cis = null;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
         protected static void DoDynamicModelInitialization(Type model)
         {
             var mdl = ModelBase.Dynamic(model);
@@ -208,6 +224,9 @@ namespace Broccoli.Core.Facade
             _dynamicModelCache.Add(model.Name, mdl);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected static void InitDbAllTablesCache()
         {
             var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
@@ -249,6 +268,10 @@ namespace Broccoli.Core.Facade
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
         protected static void InitConnectionNamesCache(Type model)
         {
             var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
@@ -261,6 +284,10 @@ namespace Broccoli.Core.Facade
             _connectionNamesCache.Add(model.Name, _name);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
         protected static void InitTableNamesCache(Type model)
         {
             var tna = model.GetCustomAttribute<PetaPoco.TableNameAttribute>();
@@ -271,6 +298,9 @@ namespace Broccoli.Core.Facade
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected static void ReflectionAssignModelsTableName()
         {
             GetAllModels().ForEach(model =>
@@ -297,6 +327,9 @@ namespace Broccoli.Core.Facade
             });
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected static void ReflectionAssignModelsConnectionName()
         {
             var defaultDbConnection = ConfigurationManager.AppSettings["defaultDbConnection"].ToString();
@@ -320,7 +353,7 @@ namespace Broccoli.Core.Facade
         //*
         public static IBroccoliDatabase GetDatabaseConnection(string connectionStringName)
         {
-            return new BroccoliDatabase(connectionStringName) { EnableAutoSelect = false };
+            return new BroccoliDatabase(connectionStringName) ;
         }
 
         //* 

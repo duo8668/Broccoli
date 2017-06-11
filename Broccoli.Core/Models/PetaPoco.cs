@@ -2,7 +2,7 @@
 //      Apache License, Version 2.0 https://github.com/CollaboratingPlatypus/PetaPoco/blob/master/LICENSE.txt
 // </copyright>
 // <author>PetaPoco - CollaboratingPlatypus</author>
-// <date>2017/03/21</date>
+// <date>2017/05/17</date>
 
 // --------------------------WARNING--------------------------------
 // -----------------------------------------------------------------
@@ -534,7 +534,6 @@ namespace PetaPoco
             cmd.Connection = connection;
             cmd.CommandText = sql;
             cmd.Transaction = _transaction;
-
             foreach (var item in args)
             {
                 AddParam(cmd, item, null);
@@ -1191,8 +1190,7 @@ namespace PetaPoco
         /// <returns>The first record in the result set, or default(T) if no matching rows</returns>
         public T FirstOrDefault<T>(Sql sql)
         {
-            var q = Query<T>(sql);
-            return q.FirstOrDefault();
+            return Query<T>(sql).FirstOrDefault();
         }
 
         #endregion
@@ -2403,8 +2401,6 @@ namespace PetaPoco
 
         #endregion
 
-
-
         #region Public Properties
 
         /// <summary>
@@ -3126,7 +3122,6 @@ namespace PetaPoco
         /// </returns>
         IMapper DefaultMapper { get; }
 
-
         /// <summary>
         ///     Gets the SQL of the last executed statement
         /// </summary>
@@ -3259,7 +3254,6 @@ namespace PetaPoco
         ///     Marks the current transaction scope as complete.
         /// </summary>
         void CompleteTransaction();
-
     }
 
 
@@ -4699,12 +4693,21 @@ namespace PetaPoco
         /// <summary>
         ///     Returns the .net standard conforming DbProviderFactory.
         /// </summary>
-        /// <param name="assemblyQualifiedName">The assembly qualified name of the provider factory.</param>
+        /// <param name="assemblyQualifiedNames">The assembly qualified name of the provider factory.</param>
         /// <returns>The db provider factory.</returns>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="assemblyQualifiedName" /> does not match a type.</exception>
-        protected DbProviderFactory GetFactory(string assemblyQualifiedName)
+        /// <exception cref="ArgumentException">Thrown when <paramref name="assemblyQualifiedNames" /> does not match a type.</exception>
+        protected DbProviderFactory GetFactory(params string[] assemblyQualifiedNames)
         {
-            var ft = Type.GetType(assemblyQualifiedName);
+            Type ft = null;
+            foreach (var assemblyName in assemblyQualifiedNames)
+            {
+                ft = Type.GetType(assemblyName);
+
+                if (ft != null)
+                {
+                    break;
+                }
+            }
 
             if (ft == null)
                 throw new ArgumentException("Could not load the " + GetType().Name + " DbProviderFactory.");
@@ -7219,7 +7222,10 @@ namespace PetaPoco
 
         public override DbProviderFactory GetFactory()
         {
-            return GetFactory("Oracle.ManagedDataAccess.Client.OracleClientFactory, Oracle.ManagedDataAccess, Culture=neutral, PublicKeyToken=89b483f429c47342");
+            // "Oracle.ManagedDataAccess.Client.OracleClientFactory, Oracle.ManagedDataAccess" is for Oracle.ManagedDataAccess.dll
+            // "Oracle.DataAccess.Client.OracleClientFactory, Oracle.DataAccess" is for Oracle.DataAccess.dll
+            return GetFactory("Oracle.ManagedDataAccess.Client.OracleClientFactory, Oracle.ManagedDataAccess, Culture=neutral, PublicKeyToken=89b483f429c47342",
+                              "Oracle.DataAccess.Client.OracleClientFactory, Oracle.DataAccess");
         }
 
         public override string EscapeSqlIdentifier(string sqlIdentifier)
@@ -7372,15 +7378,18 @@ namespace PetaPoco
             return GetFactory("System.Data.SqlClient.SqlClientFactory, System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
         }
 
-        private static readonly Regex simpleRegexOrderBy = new Regex(@"\bORDER\s+BY\s+", RegexOptions.RightToLeft | RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
-
         public override string BuildPageQuery(long skip, long take, SQLParts parts, ref object[] args)
         {
             var helper = (PagingHelper)PagingUtility;
             // when the query does not contain an "order by", it is very slow
-            if (simpleRegexOrderBy.IsMatch(parts.SqlSelectRemoved))
+            if (helper.SimpleRegexOrderBy.IsMatch(parts.SqlSelectRemoved))
             {
-                parts.SqlSelectRemoved = helper.RegexOrderBy.Replace(parts.SqlSelectRemoved, "", 1);
+                var m = helper.SimpleRegexOrderBy.Match(parts.SqlSelectRemoved);
+                if (m.Success)
+                {
+                    var g = m.Groups[0];
+                    parts.SqlSelectRemoved = parts.SqlSelectRemoved.Substring(0, g.Index);
+                }
             }
             if (helper.RegexDistinct.IsMatch(parts.SqlSelectRemoved))
             {
@@ -7606,6 +7615,8 @@ namespace PetaPoco
                 @"\bORDER\s+BY\s+(?!.*?(?:\)|\s+)AS\s)(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\[\]`""\w\(\)\.])+(?:\s+(?:ASC|DESC))?(?:\s*,\s*(?:\((?>\((?<depth>)|\)(?<-depth>)|.?)*(?(depth)(?!))\)|[\[\]`""\w\(\)\.])+(?:\s+(?:ASC|DESC))?)*",
                 RegexOptions.RightToLeft | RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
 
+        public Regex SimpleRegexOrderBy = new Regex(@"\bORDER\s+BY\s+", RegexOptions.RightToLeft | RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.Compiled);
+
         public static IPagingHelper Instance { get; private set; }
 
         static PagingHelper()
@@ -7641,12 +7652,12 @@ namespace PetaPoco
                 parts.SqlCount = sql.Substring(0, g.Index) + "COUNT(*) " + sql.Substring(g.Index + g.Length);
 
             // Look for the last "ORDER BY <whatever>" clause not part of a ROW_NUMBER expression
-            m = RegexOrderBy.Match(parts.SqlCount);
+            m = SimpleRegexOrderBy.Match(parts.SqlCount);
             if (m.Success)
             {
                 g = m.Groups[0];
-                parts.SqlOrderBy = g.ToString();
-                parts.SqlCount = parts.SqlCount.Substring(0, g.Index) + parts.SqlCount.Substring(g.Index + g.Length);
+                parts.SqlOrderBy = g + parts.SqlCount.Substring(g.Index + g.Length);
+                parts.SqlCount = parts.SqlCount.Substring(0, g.Index);
             }
 
             return true;
@@ -7658,9 +7669,13 @@ namespace PetaPoco
     {
         private static Regex rxParams = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
         // Helper to handle named parameters from object properties
-        public static string ProcessParams(string sql, object[] args_src, List<object> args_dest)
+        public static string ProcessParams(string sql, object[] args_src, List<object> args_dest = null)
         {
-            string ret = rxParams.Replace(sql, m =>
+            if (args_dest == null)
+            {
+                args_dest = new List<object>();
+            }
+            return rxParams.Replace(sql, m =>
             {
                 string param = m.Value.Substring(1);
 
@@ -7714,9 +7729,8 @@ namespace PetaPoco
                     args_dest.Add(arg_val);
                     return "@" + (args_dest.Count - 1).ToString();
                 }
-            });
-
-            return ret;
+            }
+                );
         }
     }
 

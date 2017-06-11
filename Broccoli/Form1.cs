@@ -47,69 +47,39 @@ namespace Broccoli
         {
             var from = DateTime.Parse("2017-05-06");
             Invoice search = new Invoice();
-            int run = 1000;
+            int run = 500;
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
             search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-            Parallel.For(0, run, (s) =>
-              {
-                  var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true);
+         
+            Parallel.For(0, run, (ssss) =>
+                {
+                    search.InvoiceNum = "INV-333333";
+                    search.Save();
 
-                  foreach (var ccc in custs)
-                  {
+                    //  var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
 
-                  }
+                    // foreach (var ccc in custs)
+                    // {
+                    // }
+                    // search.InvoiceNum2 = "INV-333333";
 
-                  search.InvoiceNum = "INV-333333";
-              });
+                });
             // for (int i = 0; i < run; i++)
             // {
             //      search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-            //search = Invoice.Find(_whereCondition: "invoice_num=@0", args: "INV-222222");
+            //      search = Invoice.Find(_whereCondition: "invoice_num=@0", args: "INV-222222");
             //  }
 
-            /*
-            for (int i = 0; i < run; i++)
-            {
-                //Invoice inv = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-                //Customer cust = Customer.Find((cccc) => cccc.id == 1);
-                Invoice inv = Invoice.Find(_whereCondition: "WHERE invoice_num=@0", args: "INV-222222");
-                //Customer cust = Customer.Find(_whereCondition: "WHERE id=@0", args: 1);
-            }
-            */
             var time2 = DateTime.Now;
             label2.Text = time2.ToString("HH:mm:ss.fffff");
 
             var time3 = time2 - time1;
-            label3.Text = "" + time3.TotalMilliseconds + " ::   Avg: " + (time3.TotalMilliseconds / run);
             search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
-            //var invs = Invoice.QueryAll();
-            //inv = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-222222"));
+            label3.Text = "" + time3.TotalMilliseconds + " ::   Avg: " + (time3.TotalMilliseconds / run);
 
-            // var cc = inv.hasMany<Customer>((cccc) => cccc.FirstName == "God", true);
-            /*
-            Parallel.ForEach(invs, (iiiiii) =>
-            {
-                var cc = iiiiii.hasMany<Customer>((cust) => cust.FirstName == "God", true);
 
-                foreach (var cust in cc)
-                {
-
-                }
-            });
-         
-             label1.Text = inv.InvoiceNum;
-            label2.Text = inv.ModifiedAt.ToShortDateString();
-            if (inv.InvoiceDateTime.HasValue)
-            {
-                  label3.Text = inv.InvoiceDateTime.Value.ToShortDateString();
-            }
-            else
-            {
-                  label3.Text = "--------------------------";
-            }
-             */
         }
 
         private string testArgs(string main = "", params object[] args)

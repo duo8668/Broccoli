@@ -113,5 +113,10 @@ namespace Broccoli.Core.Extensions
             }
         }
 
+
+        /**
+    * Give any Enumerable a ForEach Method.
+    */
+      
     }
 }

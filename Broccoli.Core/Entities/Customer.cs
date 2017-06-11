@@ -12,9 +12,29 @@ namespace Broccoli.Core.Entities
     public class Customer : Model<Customer>
     {
         [PetaPoco.Column("firstname")]
-        public string FirstName { get; set; }
+        public string FirstName
+        {
+            get
+            {
+                return Get<string>();
+            }
+            set
+            {
+                Set<string>(value);
+            }
+        }
 
         [PetaPoco.Column("lastname")]
-        public string LastName { get; set; }
+        public string LastName
+        {
+            get
+            {
+                return Get<string>();
+            }
+            set
+            {
+                Set<string>(value);
+            }
+        }
     }
 }

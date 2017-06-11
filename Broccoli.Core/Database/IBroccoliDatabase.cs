@@ -12,6 +12,7 @@ namespace Broccoli.Core.Database
 
         PetaPoco.PocoData GetPocoDataForType(Type type);
         PetaPoco.PocoData GetPocoDataForObject(object poco);
+        
 
     }
 }

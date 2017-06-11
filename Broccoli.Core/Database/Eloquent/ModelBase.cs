@@ -1,20 +1,14 @@
-﻿using Broccoli.Core.Configuration;
-using Broccoli.Core.Database.Builder;
-using Broccoli.Core.Database.Utils;
+﻿using Broccoli.Core.Database.Builder;
 using Broccoli.Core.Facade;
 using Broccoli.Core.Utils;
-using Inflector;
 using Newtonsoft.Json;
 using PetaPoco;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Broccoli.Core.Database.Eloquent
@@ -48,11 +42,10 @@ namespace Broccoli.Core.Database.Eloquent
         private List<object> _DiscoveredEntities;
 
         protected static string _modelName;
-        protected static Dictionary<string, PropertyInfo> _propertyInfos;
 
         public ModelBase()
         {
-
+            PropertyBag = new Dictionary<string, object>();
         }
 
         public static void Init()
@@ -106,6 +99,16 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public static Dictionary<String, PocoColumn> PocoColumns
+        {
+            get
+            {
+                // Return a new list, and leave the cached copy as is.
+                return DbFacade.ColumnInfos[ModelName];
+            }
+        }
 
         public static LinqSql<TModel> _linq;
 
@@ -148,7 +151,7 @@ namespace Broccoli.Core.Database.Eloquent
         }
 
         [PetaPoco.Column("id")]
-        public long Id
+        public long? Id
         {
             get
             {
@@ -156,7 +159,7 @@ namespace Broccoli.Core.Database.Eloquent
             }
             set
             {
-                Set<long>(value);
+                Set<long?>(value);
             }
         }
 
@@ -214,10 +217,13 @@ namespace Broccoli.Core.Database.Eloquent
 
         #region Custom property management
 
+        protected static string[] SpecialAttributes = { "CreatedAt", "ModifiedAt", "DeletedAt" };
         [JsonIgnore]
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
 
+
+        protected static Dictionary<string, PropertyInfo> _propertyInfos;
         [PetaPoco.Ignore]
         public static Dictionary<string, PropertyInfo> PropertyInfos
         {
@@ -241,7 +247,7 @@ namespace Broccoli.Core.Database.Eloquent
          * 		public string Bar { get { return Get<string>(); } set... }
          * 	}
          */
-        public virtual T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true)
+        public virtual T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true, bool isAList = false)
         {
             // If the property bag hasn't been created yet then obviously we won't find anything in it. Even if someone asks for a related
             // entity, we must either have an Id or the entity / entities will have been "Set" and thus the the PropertyBag will exist.
@@ -269,7 +275,8 @@ namespace Broccoli.Core.Database.Eloquent
 
             // If we get to hear, we have checked the property bag for a value, the discovered entities list and the database and found nothing
             // so lets set the value to null and move on.
-            if (TypeMapper.IsList(typeof(T)))
+
+            if (isAList)
             {
                 dynamic tmp = Activator.CreateInstance
                 (
@@ -285,8 +292,8 @@ namespace Broccoli.Core.Database.Eloquent
             else
             {
                 this.Set(default(T), propName, false);
-                return default(T);
             }
+            return default(T);
         }
 
         /**
@@ -298,33 +305,21 @@ namespace Broccoli.Core.Database.Eloquent
         * 	{
         * 		public string Bar { get... set { Set(value); } }
         * 	}
-        * 
         */
-        public virtual void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true)
+        public virtual void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true, bool isAList = false)
         {
             // Grab the property
             var prop = PropertyInfos[propName];
 
-            // Create the property bag dict if it doesn't exist yet.
-            if (this.PropertyBag == null)
-            {
-                this.PropertyBag = new Dictionary<string, object>();
-            }
-
-            // If the value is an entity or list of entities
-            // we will save it to our discovered list.
-            if (value != null && !TypeMapper.IsClrType(value))
-            {
-                //   this.SaveDiscoveredEntities(prop, value);
-            }
-
             // If the property does not already have a value, set it's original value.
-            if (this.Get<object>(propName, loadFromDb: false) == null)
+            if ((this.Get<T>(propName, loadFromDb: false) == null && (typeof(T).IsPrimitive || !TypeMapper.IsClrType(typeof(T)) || TypeMapper.IsNullable(value)))
+                || (typeof(T).Equals(typeof(int)) && this.Get<int>(propName, loadFromDb: false)  == 0)
+                || (typeof(T).Equals(typeof(DateTime)) && this.Get<DateTime>(propName, loadFromDb: false) == DateTime.MinValue))
             {
-                if (value != null && TypeMapper.IsListOfEntities(value))
+                triggerChangeEvent = false;
+                if (value != null && isAList)
                 {
-                    var clone = (value as IEnumerable<object>)
-                    .Cast<IModel<TModel>>().ToList();
+                    var clone = (value as IEnumerable<object>).Cast<IModel<TModel>>().ToList();
 
                     OriginalPropertyBag[propName] = clone;
                 }
@@ -334,47 +329,8 @@ namespace Broccoli.Core.Database.Eloquent
                 }
             }
 
-            // Wrap any normal Lists in a BindingList so that we can track when  new entities are added so that we may save those entities to our
-            // discovered list.
-            dynamic propertyBagValue;
-            if (value != null && TypeMapper.IsList(value))
-            {
-                dynamic bindingList = Activator.CreateInstance
-                (
-                    typeof(BindingList<>).MakeGenericType
-                    (
-                        value.GetType().GenericTypeArguments[0]
-                    ),
-                    new object[] { value }
-                );
-
-                bindingList.ListChanged += new ListChangedEventHandler
-                (
-                    (sender, e) =>
-                    {
-                        if (!triggerChangeEvent) return;
-
-                        switch (e.ListChangedType)
-                        {
-                            case ListChangedType.ItemAdded:
-                            case ListChangedType.ItemDeleted:
-                                {
-                                    this.FirePropertyChanged(prop);
-                                }
-                                break;
-                        }
-                    }
-                );
-
-                propertyBagValue = bindingList;
-            }
-            else
-            {
-                propertyBagValue = value;
-            }
-
             // Save the new value
-            this.PropertyBag[propName] = propertyBagValue;
+            this.PropertyBag[propName] = value;
 
             // Trigger the change event
             if (triggerChangeEvent) this.FirePropertyChanged(prop);
@@ -402,11 +358,18 @@ namespace Broccoli.Core.Database.Eloquent
          * This just keeps a list of all the mapped properties that have
          * changed since hydration.
          */
-        protected void UpdateModified(PropertyInfo changedProp)
+        protected void AddModified(PropertyInfo changedProp)
         {
             if (!this.ModifiedProps.Contains(changedProp))
             {
                 this.ModifiedProps.Add(changedProp);
+            }
+        }
+        protected void RemoveModified(PropertyInfo changedProp)
+        {
+            if (this.ModifiedProps.Contains(changedProp))
+            {
+                this.ModifiedProps.Remove(changedProp);
             }
         }
         #endregion
@@ -421,10 +384,9 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 if (PropertyBag[prop.Name] != OriginalPropertyBag[prop.Name])
                 {
-                    this.UpdateModified(prop);
+                    this.AddModified(prop);
 
-                    // Run the OnPropertyChanged method. This allows models to override
-                    // the method and not have to worry about calling the base method.
+                    // Run the OnPropertyChanged method. This allows models to override the method and not have to worry about calling the base method.
                     this.OnPropertyChanged(prop);
 
                     // Now fire off any other attached handlers
@@ -433,6 +395,10 @@ namespace Broccoli.Core.Database.Eloquent
                     {
                         handler(this, new PropertyChangedEventArgs(prop.Name));
                     }
+                }
+                else
+                {
+                    this.RemoveModified(prop);
                 }
             }
         }
@@ -448,7 +414,7 @@ namespace Broccoli.Core.Database.Eloquent
          */
         [JsonIgnore]
         [PetaPoco.Ignore]
-        public static Dictionary<string, object> OriginalPropertyBag
+        public Dictionary<string, object> OriginalPropertyBag
         {
             get
             {
@@ -490,8 +456,31 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
-        private static Dictionary<string, object> _OriginalPropertyBag;
+        private Dictionary<string, object> _OriginalPropertyBag;
         private static int _OriginalPropertyBagCount;
         #endregion
+    }
+
+    public static class ModelExtensionMethods
+    {
+        public static void Save<T>(this IEnumerable<T> enumerable) where T : Model<T>, new()
+        {
+            if (enumerable == null) return;
+
+            if (enumerable.Count() > 500)
+            {
+                Parallel.ForEach(enumerable, (item) =>
+                {
+                    item.Save();
+                });
+            }
+            else
+            {
+                foreach (var item in enumerable)
+                {
+                    item.Save();
+                }
+            }
+        }
     }
 }

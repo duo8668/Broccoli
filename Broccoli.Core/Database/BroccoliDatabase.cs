@@ -1,14 +1,16 @@
-﻿using System;
+﻿using PetaPoco;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Data;
+using System.Data.Common;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
-using PetaPoco;
 
 namespace Broccoli.Core.Database
 {
     public class BroccoliDatabase : PetaPoco.Database, IBroccoliDatabase
     {
+        // Member variables
         public BroccoliDatabase(string connectionStringName) : base(connectionStringName)
         {
         }

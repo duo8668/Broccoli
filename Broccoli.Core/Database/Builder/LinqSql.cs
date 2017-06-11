@@ -16,25 +16,28 @@ namespace Broccoli.Core.Database.Builder
 
     public class LinqSql<TModel> : IDisposable where TModel : Model<TModel>, new()
     {
-        private string _sql;
+        private string _sql = "";
         private List<object> _args;
 
-        private LinqSql<TModel> _theSql;
-
         private static string prefix = "a";
+        private int paramCount = 0;
+
         private static Regex rxSelectStatement = new Regex(@"select(?<selectCols>[a-zA-Z0-9*\s]+)from(?<tbl>[a-zA-Z0-9*_\s]+)", RegexOptions.Compiled);
-        private int count = 0;
 
         protected static readonly char[] selectSpliter = ",".ToCharArray();
 
+        public static Dictionary<string, string> QueryCache
+        {
+            get; protected set;
+        }
+
         private Queue<SqlWhereHelper<TModel>> _whereCondition = new Queue<SqlWhereHelper<TModel>>();
         private Dictionary<string, string> _selectCols = new Dictionary<string, string>();
-        private Dictionary<string, SqlJoinHelper<TModel>> _joinClause = new Dictionary<string, SqlJoinHelper<TModel>>();
+        private Dictionary<string, SqlJoinHelper<TModel>> _joinClause;
+        private Dictionary<string, object> _updateClause;
         private PredicateConverter _predicateConverter;
 
-        string _tableName;
-        string _exclusiveFromTable;
-        string _modelName;
+        string _tableName, _exclusiveFromTable, _modelName;
 
         public string SQL
         {
@@ -105,6 +108,11 @@ namespace Broccoli.Core.Database.Builder
 
         public SqlJoinHelper<TModel> Join(string targetTable)
         {
+            if (_joinClause == null)
+            {
+                _joinClause = new Dictionary<string, SqlJoinHelper<TModel>>();
+            }
+
             return new SqlJoinHelper<TModel>(this, _tableName, targetTable);
         }
 
@@ -116,7 +124,10 @@ namespace Broccoli.Core.Database.Builder
 
         public Builder.LinqSql<TModel> Where(string sql, params object[] args)
         {
-            _whereCondition.Enqueue(new SqlWhereHelper<TModel>(sql, args));
+            if (!string.IsNullOrEmpty(sql))
+            {
+                _whereCondition.Enqueue(new SqlWhereHelper<TModel>(sql, args));
+            }
 
             return this;
         }
@@ -134,37 +145,76 @@ namespace Broccoli.Core.Database.Builder
             }
         }
 
+        public LinqSql<TModel> Update()
+        {
+            _updateClause = new Dictionary<string, object>();
+            return this;
+        }
+
+        public LinqSql<TModel> Set(string sql, dynamic param)
+        {
+            _updateClause.Add(sql, param);
+            return this;
+        }
+
         #endregion
 
         private void Build()
         {
-            _sql = null;
+            _sql = "";
             var new_args = new List<object>();
             BuildSelect();
+            BuildUpdate();
             BuildJoin();
             BuildWhere();
-            //var hold = PetaPoco.ParametersHelper.ProcessParams(_predicateConverter.Sql, _predicateConverter.Parameters, new_args);
-            //_theLinqSql = _theLinqSql.Where(hold, new_args.ToArray());
             Dispose();
         }
 
         private void BuildSelect()
         {
-            string cols = DbFacade.PocoDatas[_modelName].Columns.Count != 0
-                ? string.Join(", ", (from c in DbFacade.PocoDatas[_modelName].QueryColumns select _tableName + "." + c).ToArray())
-                : "NULL";
+            if (_selectCols.Count() > 0)
+            {
+                string cols = DbFacade.PocoDatas[_modelName].Columns.Count != 0
+               ? string.Join(", ", (from c in DbFacade.PocoDatas[_modelName].QueryColumns select _tableName + "." + c).ToArray())
+               : "NULL";
 
-            _sql = "SELECT " + cols + " FROM " + (string.IsNullOrEmpty(_exclusiveFromTable) ? _tableName : _exclusiveFromTable);
+                _sql = "SELECT " + cols + " FROM " + (string.IsNullOrEmpty(_exclusiveFromTable) ? _tableName : _exclusiveFromTable);
+            }
+        }
+
+        private void BuildUpdate()
+        {
+            if (_updateClause != null)
+            {
+                string setQuery = "UPDATE " + _tableName + " SET ";
+                foreach (var iii in _updateClause.Keys)
+                {
+                    setQuery += iii + "=@" + paramCount + ", ";
+                    paramCount++;
+                }
+
+                setQuery = setQuery.Trim().TrimEnd(",".ToCharArray()) + " ";
+
+                _args.AddRange(_updateClause.Values.ToList());
+                _sql += setQuery;
+            }
         }
 
         private void BuildJoin()
         {
-            string onQuery = "";
-            foreach (var iii in _joinClause.Values)
+            if (_joinClause != null)
             {
-                onQuery += iii.ToString() + " ";
+                if (_joinClause.Count() > 0)
+                {
+                    string onQuery = "";
+                    foreach (var iii in _joinClause.Values)
+                    {
+                        onQuery += iii.ToString() + " ";
+                    }
+                    _sql += onQuery;
+
+                }
             }
-            _sql += onQuery;
         }
 
         private void BuildWhere()
@@ -172,7 +222,10 @@ namespace Broccoli.Core.Database.Builder
             string whereQuery = "";
             if (_whereCondition.Count() > 0)
             {
-                whereQuery += " WHERE ";
+                if (!_sql.ToLower().Contains("where"))
+                {
+                    whereQuery += " WHERE ";
+                }
             }
             while (_whereCondition.Count() > 0)
             {
@@ -193,8 +246,7 @@ namespace Broccoli.Core.Database.Builder
         {
             _whereCondition.Clear();
             _selectCols.Clear();
-            _joinClause.Clear();
-            _predicateConverter = null;
+            //_joinClause.Clear(); 
         }
 
         #region Additional LINQ handling
@@ -203,7 +255,6 @@ namespace Broccoli.Core.Database.Builder
         {
             return this;
         }
-
 
         #endregion
     }
@@ -215,6 +266,7 @@ namespace Broccoli.Core.Database.Builder
         public string TargetTable { get; private set; }
         public string MyKey { get; private set; }
         public string HerKey { get; private set; }
+        public string AbsoluteCondition { get; private set; }
         public string AdditionalCondition { get; private set; }
 
         public Func<TableInfo, string> fnMyKey;
@@ -265,13 +317,18 @@ namespace Broccoli.Core.Database.Builder
 
         public LinqSql<TModel> On(string condition = "", params object[] args)
         {
-            AdditionalCondition = condition;
+            AbsoluteCondition = condition;
             return _sql.On(this);
         }
 
         public override string ToString()
         {
-            return " JOIN " + TargetTable + " ON " + MyKey + "=" + HerKey + (string.IsNullOrEmpty(AdditionalCondition) ? "" : " AND " + AdditionalCondition);
+            if (string.IsNullOrEmpty(AbsoluteCondition))
+            {
+                AbsoluteCondition = MyKey + "=" + HerKey + (string.IsNullOrEmpty(AdditionalCondition) ? "" : " AND " + AdditionalCondition);
+            }
+
+            return " JOIN " + TargetTable + " ON " + AbsoluteCondition + " ";
         }
 
         public void Dispose()
@@ -326,5 +383,63 @@ namespace Broccoli.Core.Database.Builder
         {
             Arguments = null;
         }
+    }
+
+    public class SqlUpdateHelper<TModel> : IDisposable where TModel : Model<TModel>, new()
+    {
+        private readonly LinqSql<TModel> _sql;
+        public string MyTable { get; private set; }
+        public string AbsoluteCondition { get; private set; }
+
+        public SqlUpdateHelper(LinqSql<TModel> sql, string myTable)
+        {
+            _sql = sql;
+            MyTable = myTable;
+        }
+
+        public LinqSql<TModel> Set(Expression<Func<TModel, bool>> predicate = null, params object[] args)
+        {
+            if (predicate != null)
+            {
+                using (var prc = new UpdatePredicateConverter())
+                {
+                    prc.Visit(predicate.Body);
+                    return Set(prc.Sql, prc.Parameters);
+                }
+            }
+            return _sql;
+        }
+
+        public LinqSql<TModel> Set(string condition = "", params object[] args)
+        {
+            AbsoluteCondition = condition;
+            return null;
+        }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: dispose managed state (managed objects).
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

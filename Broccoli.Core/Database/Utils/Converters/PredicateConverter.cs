@@ -1,9 +1,7 @@
-﻿using Broccoli.Core.Database.Eloquent;
-using Broccoli.Core.Database.Exceptions;
+﻿using Broccoli.Core.Database.Exceptions;
 using Broccoli.Core.Facade;
 using Broccoli.Core.Utils;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -12,7 +10,6 @@ namespace Broccoli.Core.Database.Utils.Converters
     /**
        * Given an Expression Tree, we will convert it into a SQL WHERE clause.
        *
-       * ```
        * 	Expression<Func<TModel, bool>> expression = m => m.Id == 1;
        *
        * 	var converter = new PredicateConverter();
@@ -20,7 +17,6 @@ namespace Broccoli.Core.Database.Utils.Converters
        *
        * 	// converter.Sql == "Id = {0}"
        * 	// converter.Parameters == new object[] { 1 }
-       * ```
        */
     public class PredicateConverter : ExpressionVisitor, System.IDisposable
     {
@@ -146,7 +142,7 @@ namespace Broccoli.Core.Database.Utils.Converters
                 // ConstantExpression with the expected value and Vist it.
                 if (value != null)
                 {
-                    if (TypeMapper.IsClrType(value))
+                    if (value.GetType().IsPrimitive || TypeMapper.IsClrType(value))
                     {
                         this.Visit(Expression.Constant(value));
                     }
@@ -179,7 +175,7 @@ namespace Broccoli.Core.Database.Utils.Converters
 
                 this.value = null;
 
-                if (TypeMapper.IsClrType(value))
+                if (value.GetType().IsPrimitive || TypeMapper.IsClrType(value))
                 {
                     this.Visit(Expression.Constant(value));
                 }

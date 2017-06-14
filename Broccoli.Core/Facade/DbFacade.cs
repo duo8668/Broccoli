@@ -13,6 +13,7 @@ using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Broccoli.Core.Facade
@@ -21,6 +22,7 @@ namespace Broccoli.Core.Facade
     {
         //* Storage for all models
         private static HashSet<Type> _AllModels;
+        private static object _dbConnectionsCachelock = new object();
 
         // Handling foreign key
         private static ForeignKeyGenerator _foreignKeyGenerator;
@@ -353,7 +355,7 @@ namespace Broccoli.Core.Facade
         //*
         public static IBroccoliDatabase GetDatabaseConnection(string connectionStringName)
         {
-            return new BroccoliDatabase(connectionStringName) ;
+            return new BroccoliDatabase(connectionStringName) { EnableAutoSelect = false};
         }
 
         //* 

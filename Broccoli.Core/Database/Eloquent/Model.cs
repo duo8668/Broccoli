@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Broccoli.Core.Database.Eloquent
 {
@@ -54,17 +55,39 @@ namespace Broccoli.Core.Database.Eloquent
                 return Find(test.SQL, test.Arguments);
             }
         }
-
         /// <summary>
         /// Final entry of the "Find". This function call should maintain a final copy of the SQL & arguments to be passed to the PetaPoco.
         /// </summary>
         /// <param name="_whereCondition"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        public static TModel Find(string _whereCondition, params object[] args)
+        public static TModel Find(string query, params object[] args)
         {
-            return DbFacade.GetDatabaseConnection(ConnectionName).FirstOrDefault<TModel>(_whereCondition, args);
+            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(string.Format("{0} {1}", SelectSqlCache, query), args).SingleOrDefault();
         }
+
+        #region Async methods
+        public static async Task<TModel> FindAsync(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
+        {
+            using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
+            {
+                return await FindAsync(_helper.Sql, withTrashed, _helper.Parameters);
+            }
+        }
+
+        public static async Task<TModel> FindAsync(string _whereCondition = "", bool withTrashed = false, params object[] args)
+        {
+            using (var test = FilterTrashed(withTrashed).Where(_whereCondition, args))
+            {
+                return await FindAsync(test.SQL, test.Arguments);
+            }
+        }
+
+        public static async Task<TModel> FindAsync(string query, params object[] args)
+        {
+            return (await DbFacade.GetDatabaseConnection(ConnectionName).BroccoQuery<TModel>(string.Format("{0} {1}", SelectSqlCache, query), args)).SingleOrDefault();
+        }
+        #endregion
 
         public static List<TModel> FindAll(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
         {
@@ -128,13 +151,14 @@ namespace Broccoli.Core.Database.Eloquent
         {
             using (var test = FilterTrashed(withTrashed).Where(_whereCondition, args))
             {
-                return QueryAll(test.SQL, test.Arguments);
+                return QueryAll(string.Format("{0} {1}", SelectSqlCache, test.SQL), test.Arguments);
             }
         }
 
+        //* TODO: Fix for QueryAll issue to support caching
         public static IEnumerable<TModel> QueryAll(string query, params object[] args)
         {
-            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(query, PocoData, args);
+            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(query, args);
         }
 
         public static List<TModel> FindPage(long page, long itemsPerPage, string _sql, bool withTrashed = false, params object[] args)
@@ -144,29 +168,35 @@ namespace Broccoli.Core.Database.Eloquent
 
         public TModel Save()
         {
-            //* check if data exists, if not exists then update
+            //* initialize an object for execute
+            var toExecute = FilterTrashed();
+
+            //* set the modified records. The logic behind will handle it without hassle
+            ModifiedAt = DateTime.Now;
+
+            //* Need to form value to save
+            var recordsToUpdate = from ModifiedProp in ModifiedColumns
+                                  let pocoCol = PocoColumns[ModifiedProp]
+                                  select new { pocoCol.ColumnName, value = PropertyBag[ModifiedProp] }
+                                 ;
             if (Id == 0)
             {
+                //* Do insert here
 
             }
             else
             {
-                var recordsToUpdate = (from ModifiedProp in ModifiedProps
-                                       select new { PocoColumns[ModifiedProp.Name].ColumnName, val = (dynamic)ModifiedProp.GetValue(this) }
-                                     );
-                var spare = FilterTrashed().Update();
+                //* Do update here
+                toExecute.Update().Where((model) => model.Id == Id);
                 foreach (var red in recordsToUpdate)
                 {
-                    spare.Set(red.ColumnName, red.val);
+                    toExecute.Set(red.ColumnName, red.value);
                 }
-                spare = spare.Where((model) => model.Id == Id);
-                var sql = PetaPoco.ParametersHelper.ProcessParams(spare.SQL, spare.Arguments);
-               // var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(sql, spare.Arguments);
-
-                return Find((model) => model.Id == Id, args: Id);
             }
+            /// var sql = PetaPoco.ParametersHelper.ProcessParams(toExecute.SQL, toExecute.Arguments);
+            var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(toExecute.SQL, toExecute.Arguments);
 
-            return (TModel)this;
+            return Find((model) => model.Id == Id, args: Id);
         }
 
         public virtual IEnumerable<T> hasMany<T>(Expression<Func<TModel, T, bool>> onPredicate, Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
@@ -223,8 +253,6 @@ namespace Broccoli.Core.Database.Eloquent
                             .Join(thatTableName)
                             .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
                             .Where(predicate));
-
-            DynamicListEvent.triggerDynamicListListening<T>(results);
 
             return results;
         }

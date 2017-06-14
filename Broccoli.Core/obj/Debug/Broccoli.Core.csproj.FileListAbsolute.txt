@@ -2,6 +2,7 @@ C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\Broccoli.Core.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\Broccoli.Core.pdb
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\Inflector.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\MySql.Data.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.Schema.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\System.Linq.Dynamic.dll

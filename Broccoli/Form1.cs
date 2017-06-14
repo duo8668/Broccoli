@@ -8,6 +8,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -52,20 +53,21 @@ namespace Broccoli
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
             search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-         
             Parallel.For(0, run, (ssss) =>
-                {
-                    search.InvoiceNum = "INV-333333";
-                    search.Save();
+            {
+                //search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+                // search.InvoiceNum = "INV-333333";
+                // search = search.Save();
+                // var stringTest = search.InvoiceNum;
+                // search.InvoiceNum = "INV-222222";
+                //search.Save();
+                var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
 
-                    //  var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
-
-                    // foreach (var ccc in custs)
-                    // {
-                    // }
-                    // search.InvoiceNum2 = "INV-333333";
-
-                });
+                // foreach (var ccc in custs)
+                // {
+                // }
+                // search.InvoiceNum2 = "INV-333333"; 
+            });
             // for (int i = 0; i < run; i++)
             // {
             //      search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
@@ -76,9 +78,8 @@ namespace Broccoli
             label2.Text = time2.ToString("HH:mm:ss.fffff");
 
             var time3 = time2 - time1;
-            search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
+            //   search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
             label3.Text = "" + time3.TotalMilliseconds + " ::   Avg: " + (time3.TotalMilliseconds / run);
-
 
         }
 

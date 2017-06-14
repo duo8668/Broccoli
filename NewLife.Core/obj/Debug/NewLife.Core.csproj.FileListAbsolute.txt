@@ -6,3 +6,4 @@ C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\o
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.csproj.GenerateResource.Cache
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\NewLife.Core\obj\Debug\NewLife.Core.csprojResolveAssemblyReference.cache

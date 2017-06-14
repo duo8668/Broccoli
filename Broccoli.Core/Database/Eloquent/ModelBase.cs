@@ -6,6 +6,7 @@ using PetaPoco;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -39,13 +40,15 @@ namespace Broccoli.Core.Database.Eloquent
     [PetaPoco.PrimaryKey("id")]
     public class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
     {
-        private List<object> _DiscoveredEntities;
-
         protected static string _modelName;
+        private static string _selectSqlCache;
+        protected   List<string> _loadedProps = new List<string>();
+        protected DataRow _myDr;
 
         public ModelBase()
         {
             PropertyBag = new Dictionary<string, object>();
+            _selectSqlCache = BroccoAutoSelectHelper.AddSelectClause<TModel>(BroccoliDatabase.BroccoProvider);
         }
 
         public static void Init()
@@ -90,6 +93,16 @@ namespace Broccoli.Core.Database.Eloquent
 
         [JsonIgnore]
         [PetaPoco.Ignore]
+        public static string SelectSqlCache
+        {
+            get
+            {
+                return _selectSqlCache;
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
         public static PocoData PocoData
         {
             get
@@ -107,46 +120,6 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 // Return a new list, and leave the cached copy as is.
                 return DbFacade.ColumnInfos[ModelName];
-            }
-        }
-
-        public static LinqSql<TModel> _linq;
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public static LinqSql<TModel> Linq
-        {
-            get
-            {
-                if (_linq == null)
-                {
-
-                    _linq = new LinqSql<TModel>();
-                }
-                return _linq;
-            }
-            protected set
-            {
-                _linq = value;
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public List<object> DiscoveredEntities
-        {
-            get
-            {
-                if (this._DiscoveredEntities == null)
-                {
-                    // Add ourselves to the discovered list.
-                    this._DiscoveredEntities = new List<object> { this };
-                }
-                return this._DiscoveredEntities;
-            }
-            set
-            {
-                this._DiscoveredEntities = value;
             }
         }
 
@@ -215,6 +188,13 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public DataRow DataRow
+        {
+            get; set;
+        }
+
         #region Custom property management
 
         protected static string[] SpecialAttributes = { "CreatedAt", "ModifiedAt", "DeletedAt" };
@@ -249,10 +229,6 @@ namespace Broccoli.Core.Database.Eloquent
          */
         public virtual T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true, bool isAList = false)
         {
-            // If the property bag hasn't been created yet then obviously we won't find anything in it. Even if someone asks for a related
-            // entity, we must either have an Id or the entity / entities will have been "Set" and thus the the PropertyBag will exist.
-            if (this.PropertyBag == null) return default(T);
-
             // Lets attempt to get the value from the PropertyBag Dict.
             object value = null;
             if (this.PropertyBag.TryGetValue(propName, out value))
@@ -308,12 +284,9 @@ namespace Broccoli.Core.Database.Eloquent
         */
         public virtual void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true, bool isAList = false)
         {
-            // Grab the property
-            var prop = PropertyInfos[propName];
-
             // If the property does not already have a value, set it's original value.
-            if ((this.Get<T>(propName, loadFromDb: false) == null && (typeof(T).IsPrimitive || !TypeMapper.IsClrType(typeof(T)) || TypeMapper.IsNullable(value)))
-                || (typeof(T).Equals(typeof(int)) && this.Get<int>(propName, loadFromDb: false)  == 0)
+            /*
+            if ((this.Get<T>(propName) == null && (typeof(T).IsPrimitive || TypeMapper.IsNullable(value) || !TypeMapper.IsClrType(typeof(T))))
                 || (typeof(T).Equals(typeof(DateTime)) && this.Get<DateTime>(propName, loadFromDb: false) == DateTime.MinValue))
             {
                 triggerChangeEvent = false;
@@ -328,29 +301,39 @@ namespace Broccoli.Core.Database.Eloquent
                     OriginalPropertyBag[propName] = value;
                 }
             }
+            */
 
-            // Save the new value
             this.PropertyBag[propName] = value;
 
+            if (!_loadedProps.Contains(propName))
+            {
+                triggerChangeEvent = false;
+                OriginalPropertyBag[propName] = value;
+                _loadedProps.Add(propName);
+            }
+            else
+            {
+                triggerChangeEvent = !PropertyBag[propName].Equals(OriginalPropertyBag[propName]);
+            }
+            
             // Trigger the change event
-            if (triggerChangeEvent) this.FirePropertyChanged(prop);
+            if (triggerChangeEvent) this.FirePropertyChanged(PocoColumns[propName]);
         }
-
         /// <summary>
         /// 
         /// </summary>
-        private List<PropertyInfo> _modifiedProps = new List<PropertyInfo>();
+        private List<string> _modifiedColumns = new List<string>();
 
         /// <summary>
         /// 
         /// </summary>
         [JsonIgnore]
         [PetaPoco.Ignore]
-        public List<PropertyInfo> ModifiedProps
+        public List<string> ModifiedColumns
         {
             get
             {
-                return this._modifiedProps;
+                return this._modifiedColumns;
             }
         }
 
@@ -358,47 +341,47 @@ namespace Broccoli.Core.Database.Eloquent
          * This just keeps a list of all the mapped properties that have
          * changed since hydration.
          */
-        protected void AddModified(PropertyInfo changedProp)
+        protected void AddModified(PocoColumn changedCol)
         {
-            if (!this.ModifiedProps.Contains(changedProp))
+            if (!this.ModifiedColumns.Contains(changedCol.PropertyInfo.Name))
             {
-                this.ModifiedProps.Add(changedProp);
+                this.ModifiedColumns.Add(changedCol.PropertyInfo.Name);
             }
         }
-        protected void RemoveModified(PropertyInfo changedProp)
+        protected void RemoveModified(PocoColumn changedCol)
         {
-            if (this.ModifiedProps.Contains(changedProp))
+            if (this.ModifiedColumns.Contains(changedCol.PropertyInfo.Name))
             {
-                this.ModifiedProps.Remove(changedProp);
+                this.ModifiedColumns.Remove(changedCol.PropertyInfo.Name);
             }
         }
         #endregion
 
         #region Fire Property event
         public event PropertyChangedEventHandler PropertyChanged;
-        protected virtual void OnPropertyChanged(PropertyInfo prop) { }
-        public void FirePropertyChanged(PropertyInfo prop)
+        protected virtual void OnPropertyChanged(PocoColumn prop) { }
+        public void FirePropertyChanged(PocoColumn pocoCol)
         {
             // Run some of our own code first.            
             if (_OriginalPropertyBagCount > 0)
             {
-                if (PropertyBag[prop.Name] != OriginalPropertyBag[prop.Name])
+                if (PropertyBag[pocoCol.PropertyInfo.Name] != OriginalPropertyBag[pocoCol.PropertyInfo.Name])
                 {
-                    this.AddModified(prop);
+                    this.AddModified(pocoCol);
 
                     // Run the OnPropertyChanged method. This allows models to override the method and not have to worry about calling the base method.
-                    this.OnPropertyChanged(prop);
+                    this.OnPropertyChanged(pocoCol);
 
                     // Now fire off any other attached handlers
                     PropertyChangedEventHandler handler = this.PropertyChanged;
                     if (handler != null)
                     {
-                        handler(this, new PropertyChangedEventArgs(prop.Name));
+                        handler(this, new PropertyChangedEventArgs(pocoCol.PropertyInfo.Name));
                     }
                 }
                 else
                 {
-                    this.RemoveModified(prop);
+                    this.RemoveModified(pocoCol);
                 }
             }
         }

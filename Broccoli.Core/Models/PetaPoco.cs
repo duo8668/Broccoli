@@ -290,6 +290,7 @@ namespace PetaPoco
                 if (_sharedConnectionDepth == 0)
                 {
                     OnConnectionClosing(_sharedConnection);
+                    _sharedConnection.Close();
                     _sharedConnection.Dispose();
                     _sharedConnection = null;
                 }
@@ -425,7 +426,7 @@ namespace PetaPoco
         /// <param name="cmd">A reference to the IDbCommand to which the parameter is to be added</param>
         /// <param name="value">The value to assign to the parameter</param>
         /// <param name="pi">Optional, a reference to the property info of the POCO property from which the value is coming.</param>
-        private void AddParam(IDbCommand cmd, object value, PropertyInfo pi)
+        protected void AddParam(IDbCommand cmd, object value, PropertyInfo pi)
         {
             // Convert value to from poco type to db type
             if (pi != null)
@@ -512,7 +513,7 @@ namespace PetaPoco
         }
 
         // Create a command
-        private static Regex rxParamsPrefix = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
+        protected static Regex rxParamsPrefix = new Regex(@"(?<!@)@\w+", RegexOptions.Compiled);
 
         public IDbCommand CreateCommand(IDbConnection connection, string sql, params object[] args)
         {
@@ -968,52 +969,58 @@ namespace PetaPoco
                 sql = AutoSelectHelper.AddSelectClause<T>(_provider, sql, _defaultMapper);
 
             OpenSharedConnection();
-            try
-            {
-                using (var cmd = CreateCommand(_sharedConnection, sql, args))
-                {
-                    IDataReader r;
-                    var pd = PocoData.ForType(typeof(T), _defaultMapper);
-                    try
-                    {
-                        r = cmd.ExecuteReader();
-                        OnExecutedCommand(cmd);
-                    }
-                    catch (Exception x)
-                    {
-                        if (OnException(x))
-                            throw;
-                        yield break;
-                    }
-                    var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, _defaultMapper) as Func<IDataReader, T>;
-                    using (r)
-                    {
-                        while (true)
-                        {
-                            T poco;
-                            try
-                            {
-                                if (!r.Read())
-                                    yield break;
-                                poco = factory(r);
-                            }
-                            catch (Exception x)
-                            {
-                                if (OnException(x))
-                                    throw;
-                                yield break;
-                            }
 
-                            yield return poco;
+            using (var cmd = CreateCommand(_sharedConnection, sql, args))
+            {
+
+                IDataReader r;
+                var pd = PocoData.ForType(typeof(T), _defaultMapper);
+                try
+                {
+                    r = cmd.ExecuteReader();
+                    OnExecutedCommand(cmd);
+                }
+                catch (Exception x)
+                {
+                    if (OnException(x))
+                        throw;
+                    yield break;
+                }
+                var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, _defaultMapper) as Func<IDataReader, T>;
+                using (r)
+                {
+                    while (true)
+                    {
+                        T poco;
+                        try
+                        {
+                            if (!r.Read())
+                                yield break;
+                            poco = factory(r);
                         }
+                        catch (Exception x)
+                        {
+                            if (OnException(x))
+                                throw;
+                            yield break;
+                        }
+
+                        yield return poco;
                     }
                 }
             }
+            try
+            {
+
+            }
             finally
             {
-                CloseSharedConnection();
+               // CloseSharedConnection();
             }
         }
+
+
+
 
         /// <summary>
         ///     Runs an SQL query, returning the results as an IEnumerable collection
@@ -2444,6 +2451,18 @@ namespace PetaPoco
         }
 
         /// <summary>
+        ///     Gets the loaded database provider. <seealso cref="Provider" />.
+        /// </summary>
+        /// <returns>
+        ///     The loaded database type.
+        /// </returns>
+        public DbProviderFactory Factory
+        {
+            get { return _factory; }
+        }
+
+
+        /// <summary>
         ///     Gets the connection string.
         /// </summary>
         /// <returns>
@@ -2481,13 +2500,13 @@ namespace PetaPoco
         private string _connectionString;
         private IProvider _provider;
         private IDbConnection _sharedConnection;
-        private IDbTransaction _transaction;
-        private int _sharedConnectionDepth;
+        protected IDbTransaction _transaction;
+        protected int _sharedConnectionDepth;
         private int _transactionDepth;
         private bool _transactionCancelled;
         private string _lastSql;
         private object[] _lastArgs;
-        private string _paramPrefix;
+        protected string _paramPrefix;
         private DbProviderFactory _factory;
         private IsolationLevel? _isolationLevel;
 
@@ -3957,39 +3976,39 @@ namespace PetaPoco
 
 
     /* 
-	Thanks to Adam Schroder (@schotime) for this.
-	
-	This extra file provides an implementation of DbProviderFactory for early versions of the Oracle
-	drivers that don't include include it.  For later versions of Oracle, the standard OracleProviderFactory
-	class should work fine
-	
-	Uses reflection to load Oracle.DataAccess assembly and in-turn create connections and commands
-	
-	Currently untested.
-	
-	Usage:   
-		
-			new PetaPoco.Database("<connstring>", new PetaPoco.OracleProvider())
-	
-	Or in your app/web config (be sure to change ASSEMBLYNAME to the name of your 
-	assembly containing OracleProvider.cs)
-	
-		<connectionStrings>
-			<add
-				name="oracle"
-				connectionString="WHATEVER"
-				providerName="Oracle"
-				/>
-		</connectionStrings>
+    Thanks to Adam Schroder (@schotime) for this.
 
-		<system.data>
-			<DbProviderFactories>
-				<add name="PetaPoco Oracle Provider" invariant="Oracle" description="PetaPoco Oracle Provider" 
-								type="PetaPoco.OracleProvider, ASSEMBLYNAME" />
-			</DbProviderFactories>
-		</system.data>
+    This extra file provides an implementation of DbProviderFactory for early versions of the Oracle
+    drivers that don't include include it.  For later versions of Oracle, the standard OracleProviderFactory
+    class should work fine
 
-	 */
+    Uses reflection to load Oracle.DataAccess assembly and in-turn create connections and commands
+
+    Currently untested.
+
+    Usage:   
+
+            new PetaPoco.Database("<connstring>", new PetaPoco.OracleProvider())
+
+    Or in your app/web config (be sure to change ASSEMBLYNAME to the name of your 
+    assembly containing OracleProvider.cs)
+
+        <connectionStrings>
+            <add
+                name="oracle"
+                connectionString="WHATEVER"
+                providerName="Oracle"
+                />
+        </connectionStrings>
+
+        <system.data>
+            <DbProviderFactories>
+                <add name="PetaPoco Oracle Provider" invariant="Oracle" description="PetaPoco Oracle Provider" 
+                                type="PetaPoco.OracleProvider, ASSEMBLYNAME" />
+            </DbProviderFactories>
+        </system.data>
+
+     */
 
     public class OracleProvider : DbProviderFactory
     {
@@ -5837,9 +5856,9 @@ namespace PetaPoco
                         Func<object, object> converter = mapper.GetFromDbConverter((PropertyInfo)null, srcType);
 
                         /*
-						if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
-							converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
-						 */
+                        if (ForceDateTimesToUtc && converter == null && srcType == typeof(DateTime))
+                            converter = delegate(object src) { return new DateTime(((DateTime)src).Ticks, DateTimeKind.Utc); };
+                         */
 
                         // Setup stack for call to converter
                         AddConverterToStack(il, converter);
@@ -7713,8 +7732,8 @@ namespace PetaPoco
 
                 // Expand collections to parameter lists
                 if ((arg_val as System.Collections.IEnumerable) != null &&
-                    (arg_val as string) == null &&
-                    (arg_val as byte[]) == null)
+                (arg_val as string) == null &&
+                (arg_val as byte[]) == null)
                 {
                     var sb = new StringBuilder();
                     foreach (var i in arg_val as System.Collections.IEnumerable)

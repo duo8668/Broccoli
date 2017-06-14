@@ -15,6 +15,6 @@ namespace Broccoli.Core.Database.Eloquent
         DateTime? DeletedAt { get; set; }
         T Get<T>([CallerMemberName] string propName = "", bool loadFromDb = true, bool isAList = false);
         void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true, bool isAList = false);
-        void FirePropertyChanged(System.Reflection.PropertyInfo prop);
+        void FirePropertyChanged(PetaPoco.PocoColumn prop);
     }
 }

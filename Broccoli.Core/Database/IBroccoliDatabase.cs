@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Broccoli.Core.Database.Eloquent;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +13,8 @@ namespace Broccoli.Core.Database
 
         PetaPoco.PocoData GetPocoDataForType(Type type);
         PetaPoco.PocoData GetPocoDataForObject(object poco);
-        
+
+        Task<IEnumerable<T>> BroccoQuery<T>(string sql, params object[] args) where T : Model<T>, new();
 
     }
 }

@@ -220,23 +220,24 @@ namespace Broccoli.Core.Database.Builder
         private void BuildWhere()
         {
             string whereQuery = "";
-            if (_whereCondition.Count() > 0)
+            var copyCond = new Queue<SqlWhereHelper<TModel>>(_whereCondition);
+          
+            if (copyCond.Count() > 0)
             {
                 if (!_sql.ToLower().Contains("where"))
                 {
                     whereQuery += " WHERE ";
                 }
             }
-            while (_whereCondition.Count() > 0)
+            while (copyCond.Count() > 0)
             {
-                var theWhere = _whereCondition.Dequeue();
+                var theWhere = copyCond.Dequeue();
                 _args.AddRange(theWhere.Arguments);
                 whereQuery += theWhere.SQLCondition + " ";
-                if (_whereCondition.Count() > 0)
+                if (copyCond.Count() > 0)
                 {
                     whereQuery += "AND ";
                 }
-
             }
 
             _sql += whereQuery;

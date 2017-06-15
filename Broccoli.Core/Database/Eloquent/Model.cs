@@ -34,26 +34,17 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static TModel Find(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
         {
-            using (var test = _linq(FilterTrashed(withTrashed)))
-            {
-                return Find(test.SQL, test.Arguments);
-            }
+            return QueryAll(_linq, withTrashed, args).SingleOrDefault();
         }
 
         public static TModel Find(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
-            using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
-            {
-                return Find(_helper.Sql, withTrashed, _helper.Parameters);
-            }
+            return QueryAll(predicate, withTrashed, args).SingleOrDefault();
         }
 
         public static TModel Find(string _whereCondition, bool withTrashed = false, params object[] args)
         {
-            using (var test = FilterTrashed(withTrashed).Where(_whereCondition, args))
-            {
-                return Find(test.SQL, test.Arguments);
-            }
+            return QueryAll(_whereCondition, withTrashed, args).SingleOrDefault();
         }
         /// <summary>
         /// Final entry of the "Find". This function call should maintain a final copy of the SQL & arguments to be passed to the PetaPoco.
@@ -63,7 +54,7 @@ namespace Broccoli.Core.Database.Eloquent
         /// <returns></returns>
         public static TModel Find(string query, params object[] args)
         {
-            return DbFacade.GetDatabaseConnection(ConnectionName).Query<TModel>(string.Format("{0} {1}", SelectSqlCache, query), args).SingleOrDefault();
+            return QueryAll(query, args).SingleOrDefault();
         }
 
         #region Async methods
@@ -91,33 +82,17 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static List<TModel> FindAll(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
         {
-            using (var test = _linq(FilterTrashed(withTrashed)))
-            {
-                return FindAll(test.SQL, test.Arguments);
-            }
+            return QueryAll(_linq, withTrashed, args).ToList();
         }
 
         public static List<TModel> FindAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
-            if (predicate != null)
-            {
-                using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
-                {
-                    return FindAll(_helper.Sql, withTrashed, _helper.Parameters);
-                }
-            }
-            else
-            {
-                return FindAll("", withTrashed, args);
-            }
+            return QueryAll(predicate, withTrashed, args).ToList();
         }
 
         public static List<TModel> FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
         {
-            using (var test = FilterTrashed(withTrashed).Where(_whereCondition, args))
-            {
-                return FindAll(test.SQL, test.Arguments);
-            }
+            return QueryAll(_whereCondition, withTrashed, args).ToList();
         }
 
         /// <summary>
@@ -141,9 +116,16 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static IEnumerable<TModel> QueryAll(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
-            using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
+            if (predicate != null)
             {
-                return QueryAll(_helper.Sql, withTrashed, _helper.Parameters);
+                using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
+                {
+                    return QueryAll(_helper.Sql, withTrashed, _helper.Parameters);
+                }
+            }
+            else
+            {
+                return QueryAll("", withTrashed, args);
             }
         }
 
@@ -166,6 +148,10 @@ namespace Broccoli.Core.Database.Eloquent
             return DbFacade.GetDatabaseConnection(ConnectionName).Page<TModel>(page, itemsPerPage, _sql, null).Items;
         }
 
+        /// <summary>
+        /// TODO : implement finding the record by all properties value POST INSERT
+        /// </summary>
+        /// <returns></returns>
         public TModel Save()
         {
             //* initialize an object for execute
@@ -173,32 +159,47 @@ namespace Broccoli.Core.Database.Eloquent
 
             //* set the modified records. The logic behind will handle it without hassle
             ModifiedAt = DateTime.Now;
-
-            //* Need to form value to save
-            var recordsToUpdate = from ModifiedProp in ModifiedColumns
-                                  let pocoCol = PocoColumns[ModifiedProp]
-                                  select new { pocoCol.ColumnName, value = PropertyBag[ModifiedProp] }
-                                 ;
+             
             if (Id == 0)
             {
+                CreatedAt = DateTime.Now;
+                //* Need to form value to save
+                var recordsToInsert = from pocoCol in PocoColumns.Values
+                                      where PropertyBag.ContainsKey(pocoCol.PropertyInfo.Name)
+                                      select new { pocoCol.ColumnName, value = PropertyBag[pocoCol.PropertyInfo.Name] };
                 //* Do insert here
+                toExecute
+                    .Insert((from c in recordsToInsert select c.ColumnName).ToArray())
+                    .Into(TableName);
+                foreach (var red in recordsToInsert)
+                {
+                    toExecute.Value(red.ColumnName, red.value);
+                }
+                var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(toExecute.SQL, toExecute.Arguments);
 
+                //* implement finding the records by all matches
+                return null;
             }
             else
             {
+                //* Need to form value to save
+                var recordsToUpdate = from ModifiedProp in ModifiedColumns
+                                      let pocoCol = PocoColumns[ModifiedProp]
+                                      select new { pocoCol.ColumnName, value = PropertyBag[ModifiedProp] };
                 //* Do update here
                 toExecute.Update().Where((model) => model.Id == Id);
                 foreach (var red in recordsToUpdate)
                 {
                     toExecute.Set(red.ColumnName, red.value);
-                }
-            }
-            /// var sql = PetaPoco.ParametersHelper.ProcessParams(toExecute.SQL, toExecute.Arguments);
-            var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(toExecute.SQL, toExecute.Arguments);
+                } 
+                var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(toExecute.SQL, toExecute.Arguments);
 
-            return Find((model) => model.Id == Id, args: Id);
+                return Find((model) => model.Id == Id, args: Id);
+            }
+         
         }
 
+        #region Special relationship
         public virtual IEnumerable<T> hasMany<T>(Expression<Func<TModel, T, bool>> onPredicate, Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
         {
 
@@ -234,28 +235,8 @@ namespace Broccoli.Core.Database.Eloquent
 
         public virtual T hasOne<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
         {
-            //* Initialize target model
-            var targetModel = DbFacade.DynamicModels[typeof(T).Name];
-
-            //* Get this table and that table name
-            var thisTableName = TableName;
-            var thatTableName = targetModel.PocoData.TableInfo.TableName;
-
-            //* Guessing intermediate table name
-            var intermediaTable = DbFacade.GenerateIntermediateTable(thisTableName, thatTableName);
-
-            // Call the FindAll to return the result
-            var results = targetModel.Find<T>(
-                (lin) => lin.Select(thatTableName + ".*")
-                            .From(thisTableName)
-                            .Join(intermediaTable)
-                            .On(fnHasManyMyKey(PocoData.TableInfo), fnStdGenerateForeignKey(thisTableName, intermediaTable), "")
-                            .Join(thatTableName)
-                            .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
-                            .Where(predicate));
-
-            return results;
+            return hasMany(predicate, withTrashed).SingleOrDefault();
         }
-
+        #endregion
     }
 }

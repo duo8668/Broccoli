@@ -48,20 +48,26 @@ namespace Broccoli
         {
             var from = DateTime.Parse("2017-05-06");
             Invoice search = new Invoice();
-            int run = 500;
+            int run = 1;
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
-            search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            // search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            var invToAdd = new Invoice();
+            invToAdd.InvoiceNum = "INV-333333";
+            invToAdd.InvoiceDateTime = DateTime.Parse("2017-06-01 15:22");
+            invToAdd.Save();
             Parallel.For(0, run, (ssss) =>
             {
-                //search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+               // var holds = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+                // var test = DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
+
                 // search.InvoiceNum = "INV-333333";
                 // search = search.Save();
                 // var stringTest = search.InvoiceNum;
                 // search.InvoiceNum = "INV-222222";
                 //search.Save();
-                var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
+                // var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
 
                 // foreach (var ccc in custs)
                 // {

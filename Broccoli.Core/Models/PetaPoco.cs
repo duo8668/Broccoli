@@ -290,7 +290,6 @@ namespace PetaPoco
                 if (_sharedConnectionDepth == 0)
                 {
                     OnConnectionClosing(_sharedConnection);
-                    _sharedConnection.Close();
                     _sharedConnection.Dispose();
                     _sharedConnection = null;
                 }
@@ -969,53 +968,51 @@ namespace PetaPoco
                 sql = AutoSelectHelper.AddSelectClause<T>(_provider, sql, _defaultMapper);
 
             OpenSharedConnection();
-
-            using (var cmd = CreateCommand(_sharedConnection, sql, args))
+            try
             {
+                using (var cmd = CreateCommand(_sharedConnection, sql, args))
+                {
 
-                IDataReader r;
-                var pd = PocoData.ForType(typeof(T), _defaultMapper);
-                try
-                {
-                    r = cmd.ExecuteReader();
-                    OnExecutedCommand(cmd);
-                }
-                catch (Exception x)
-                {
-                    if (OnException(x))
-                        throw;
-                    yield break;
-                }
-                var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, _defaultMapper) as Func<IDataReader, T>;
-                using (r)
-                {
-                    while (true)
+                    IDataReader r;
+                    var pd = PocoData.ForType(typeof(T), _defaultMapper);
+                    try
                     {
-                        T poco;
-                        try
+                        r = cmd.ExecuteReader();
+                        OnExecutedCommand(cmd);
+                    }
+                    catch (Exception x)
+                    {
+                        if (OnException(x))
+                            throw;
+                        yield break;
+                    }
+                    var factory = pd.GetFactory(cmd.CommandText, _sharedConnection.ConnectionString, 0, r.FieldCount, r, _defaultMapper) as Func<IDataReader, T>;
+                    using (r)
+                    {
+                        while (true)
                         {
-                            if (!r.Read())
+                            T poco;
+                            try
+                            {
+                                if (!r.Read())
+                                    yield break;
+                                poco = factory(r);
+                            }
+                            catch (Exception x)
+                            {
+                                if (OnException(x))
+                                    throw;
                                 yield break;
-                            poco = factory(r);
-                        }
-                        catch (Exception x)
-                        {
-                            if (OnException(x))
-                                throw;
-                            yield break;
-                        }
+                            }
 
-                        yield return poco;
+                            yield return poco;
+                        }
                     }
                 }
             }
-            try
-            {
-
-            }
             finally
             {
-               // CloseSharedConnection();
+                CloseSharedConnection();
             }
         }
 

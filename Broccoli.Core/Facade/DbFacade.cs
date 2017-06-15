@@ -355,7 +355,7 @@ namespace Broccoli.Core.Facade
         //*
         public static IBroccoliDatabase GetDatabaseConnection(string connectionStringName)
         {
-            return new BroccoliDatabase(connectionStringName) { EnableAutoSelect = false};
+            return new BroccoliDatabase(connectionStringName) { EnableAutoSelect = false };
         }
 
         //* 
@@ -387,5 +387,6 @@ namespace Broccoli.Core.Facade
         {
             return _foreignKeyGenerator.GenerateOnClauseForeignKey(thisTable, thatTable);
         }
+
     }
 }

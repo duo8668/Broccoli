@@ -18,6 +18,7 @@ namespace Broccoli.Core.Database.Builder
     {
         private string _sql = "";
         private List<object> _args;
+        private SqlAction _sqlAction = new SqlAction();
 
         private static string prefix = "a";
         private int paramCount = 0;
@@ -26,15 +27,10 @@ namespace Broccoli.Core.Database.Builder
 
         protected static readonly char[] selectSpliter = ",".ToCharArray();
 
-        public static Dictionary<string, string> QueryCache
-        {
-            get; protected set;
-        }
-
         private Queue<SqlWhereHelper<TModel>> _whereCondition = new Queue<SqlWhereHelper<TModel>>();
-        private Dictionary<string, string> _selectCols = new Dictionary<string, string>();
+        private Dictionary<string, string> _tableCols = new Dictionary<string, string>();
         private Dictionary<string, SqlJoinHelper<TModel>> _joinClause;
-        private Dictionary<string, object> _updateClause;
+        private Dictionary<string, object> _valueClause;
         private PredicateConverter _predicateConverter;
 
         string _tableName, _exclusiveFromTable, _modelName;
@@ -68,7 +64,7 @@ namespace Broccoli.Core.Database.Builder
             _modelName = modelName;
         }
 
-        #region SQL Clause
+        #region SELECT
 
         /// <summary>
         /// 
@@ -77,9 +73,10 @@ namespace Broccoli.Core.Database.Builder
         /// <returns></returns>
         public LinqSql<TModel> Select(string[] columns)
         {
+            _sqlAction = SqlAction.Select;
             foreach (var col in columns)
             {
-                _selectCols.Add(col, col);
+                _tableCols.Add(col, col);
             }
 
             return this;
@@ -122,6 +119,61 @@ namespace Broccoli.Core.Database.Builder
             return this;
         }
 
+        #endregion
+
+        #region UPDATE
+        public LinqSql<TModel> Update()
+        {
+            _sqlAction = SqlAction.Update;
+            _valueClause = new Dictionary<string, object>();
+            return this;
+        }
+
+        public LinqSql<TModel> Set(string sql, dynamic param)
+        {
+            _valueClause.Add(sql, param);
+            return this;
+        }
+        #endregion
+
+        #region INSERT
+        public LinqSql<TModel> Insert(string[] columns)
+        {
+            _sqlAction = SqlAction.Insert;
+            foreach (var col in columns)
+            {
+                _tableCols.Add(col, col);
+            }
+            if (_valueClause != null)
+            {
+                _valueClause.Clear();
+            }
+            else
+            {
+                _valueClause = new Dictionary<string, object>();
+            }
+            return this;
+        }
+
+        public LinqSql<TModel> Insert(string csvCols)
+        {
+            return Insert(csvCols.Split(selectSpliter));
+        }
+
+        public LinqSql<TModel> Into(string _tableName)
+        {
+            _exclusiveFromTable = _tableName;
+            return this;
+        }
+        public LinqSql<TModel> Value(string sql, dynamic param)
+        {
+            _valueClause.Add(sql, param);
+            return this;
+        }
+
+        #endregion
+        #region WHERE STATEMENT
+
         public Builder.LinqSql<TModel> Where(string sql, params object[] args)
         {
             if (!string.IsNullOrEmpty(sql))
@@ -145,18 +197,6 @@ namespace Broccoli.Core.Database.Builder
             }
         }
 
-        public LinqSql<TModel> Update()
-        {
-            _updateClause = new Dictionary<string, object>();
-            return this;
-        }
-
-        public LinqSql<TModel> Set(string sql, dynamic param)
-        {
-            _updateClause.Add(sql, param);
-            return this;
-        }
-
         #endregion
 
         private void Build()
@@ -164,6 +204,7 @@ namespace Broccoli.Core.Database.Builder
             _sql = "";
             var new_args = new List<object>();
             BuildSelect();
+            BuildInsert();
             BuildUpdate();
             BuildJoin();
             BuildWhere();
@@ -172,11 +213,9 @@ namespace Broccoli.Core.Database.Builder
 
         private void BuildSelect()
         {
-            if (_selectCols.Count() > 0)
+            if (_sqlAction == SqlAction.Select && _tableCols.Count() > 0)
             {
-                string cols = DbFacade.PocoDatas[_modelName].Columns.Count != 0
-               ? string.Join(", ", (from c in DbFacade.PocoDatas[_modelName].QueryColumns select _tableName + "." + c).ToArray())
-               : "NULL";
+                string cols = string.Join(", ", (from c in _tableCols select _tableName + "." + c).ToArray());
 
                 _sql = "SELECT " + cols + " FROM " + (string.IsNullOrEmpty(_exclusiveFromTable) ? _tableName : _exclusiveFromTable);
             }
@@ -184,10 +223,10 @@ namespace Broccoli.Core.Database.Builder
 
         private void BuildUpdate()
         {
-            if (_updateClause != null)
+            if (_sqlAction == SqlAction.Update && _valueClause != null && _valueClause.Count() > 0)
             {
                 string setQuery = "UPDATE " + _tableName + " SET ";
-                foreach (var iii in _updateClause.Keys)
+                foreach (var iii in _valueClause.Keys)
                 {
                     setQuery += iii + "=@" + paramCount + ", ";
                     paramCount++;
@@ -195,58 +234,69 @@ namespace Broccoli.Core.Database.Builder
 
                 setQuery = setQuery.Trim().TrimEnd(",".ToCharArray()) + " ";
 
-                _args.AddRange(_updateClause.Values.ToList());
+                _args.AddRange(_valueClause.Values.ToList());
                 _sql += setQuery;
             }
         }
 
         private void BuildJoin()
         {
-            if (_joinClause != null)
+            if (_joinClause != null && _joinClause.Count() > 0)
             {
-                if (_joinClause.Count() > 0)
+                string onQuery = "";
+                foreach (var iii in _joinClause.Values)
                 {
-                    string onQuery = "";
-                    foreach (var iii in _joinClause.Values)
-                    {
-                        onQuery += iii.ToString() + " ";
-                    }
-                    _sql += onQuery;
-
+                    onQuery += iii.ToString() + " ";
                 }
+                _sql += onQuery;
             }
         }
 
         private void BuildWhere()
         {
             string whereQuery = "";
-            var copyCond = new Queue<SqlWhereHelper<TModel>>(_whereCondition);
-          
-            if (copyCond.Count() > 0)
+            if (_whereCondition != null && _whereCondition.Count() > 0)
             {
-                if (!_sql.ToLower().Contains("where"))
-                {
-                    whereQuery += " WHERE ";
-                }
-            }
-            while (copyCond.Count() > 0)
-            {
-                var theWhere = copyCond.Dequeue();
-                _args.AddRange(theWhere.Arguments);
-                whereQuery += theWhere.SQLCondition + " ";
+                var copyCond = new Queue<SqlWhereHelper<TModel>>(_whereCondition);
+
                 if (copyCond.Count() > 0)
                 {
-                    whereQuery += "AND ";
+                    if (!_sql.ToLower().Contains("where"))
+                    {
+                        whereQuery += " WHERE ";
+                    }
+                }
+                while (copyCond.Count() > 0)
+                {
+                    var theWhere = copyCond.Dequeue();
+                    _args.AddRange(theWhere.Arguments);
+                    whereQuery += theWhere.SQLCondition + " ";
+                    if (copyCond.Count() > 0)
+                    {
+                        whereQuery += "AND ";
+                    }
                 }
             }
-
             _sql += whereQuery;
+        }
+
+        private void BuildInsert()
+        {
+            if (_sqlAction == SqlAction.Insert && _valueClause.Keys.Count() > 0)
+            {
+                string cols = string.Join(", ", (from c in _valueClause.Keys select _tableName + "." + c).ToArray());
+
+                _sql = "INSERT INTO " + (string.IsNullOrEmpty(_exclusiveFromTable) ? _tableName : _exclusiveFromTable) + "(" + cols + ")";
+                cols = string.Join(", ", (from c in _valueClause.Keys select "@" + paramCount++).ToArray());
+                _sql += " VALUES (" + cols + ")";
+                _args.AddRange(_valueClause.Values.ToList());
+            }
         }
 
         public void Dispose()
         {
             _whereCondition.Clear();
-            _selectCols.Clear();
+            _tableCols.Clear();
             //_joinClause.Clear(); 
         }
 
@@ -386,61 +436,8 @@ namespace Broccoli.Core.Database.Builder
         }
     }
 
-    public class SqlUpdateHelper<TModel> : IDisposable where TModel : Model<TModel>, new()
+    public enum SqlAction
     {
-        private readonly LinqSql<TModel> _sql;
-        public string MyTable { get; private set; }
-        public string AbsoluteCondition { get; private set; }
-
-        public SqlUpdateHelper(LinqSql<TModel> sql, string myTable)
-        {
-            _sql = sql;
-            MyTable = myTable;
-        }
-
-        public LinqSql<TModel> Set(Expression<Func<TModel, bool>> predicate = null, params object[] args)
-        {
-            if (predicate != null)
-            {
-                using (var prc = new UpdatePredicateConverter())
-                {
-                    prc.Visit(predicate.Body);
-                    return Set(prc.Sql, prc.Parameters);
-                }
-            }
-            return _sql;
-        }
-
-        public LinqSql<TModel> Set(string condition = "", params object[] args)
-        {
-            AbsoluteCondition = condition;
-            return null;
-        }
-
-        #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    // TODO: dispose managed state (managed objects).
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
-        }
-        #endregion
+        None, Select, Insert, Update
     }
 }

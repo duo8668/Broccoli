@@ -196,28 +196,10 @@ namespace Broccoli.Core.Database.Eloquent
         }
 
         #region Custom property management
-
-        protected static string[] SpecialAttributes = { "CreatedAt", "ModifiedAt", "DeletedAt" };
         [JsonIgnore]
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
-
-
-        protected static Dictionary<string, PropertyInfo> _propertyInfos;
-        [PetaPoco.Ignore]
-        public static Dictionary<string, PropertyInfo> PropertyInfos
-        {
-            get
-            {
-                if (_propertyInfos == null)
-                {
-                    _propertyInfos = DbFacade.ColumnInfos[ModelName].Values.Select(kyp => kyp.PropertyInfo).ToDictionary(item => item.Name, item => item);
-                }
-
-                return _propertyInfos;
-            }
-        }
-
+        
         /**
          * Entity Property Getter.
          * All _"mapped"_ properties need to implement this as their Getter.
@@ -285,24 +267,6 @@ namespace Broccoli.Core.Database.Eloquent
         public virtual void Set<T>(T value, [CallerMemberName] string propName = "", bool triggerChangeEvent = true, bool isAList = false)
         {
             // If the property does not already have a value, set it's original value.
-            /*
-            if ((this.Get<T>(propName) == null && (typeof(T).IsPrimitive || TypeMapper.IsNullable(value) || !TypeMapper.IsClrType(typeof(T))))
-                || (typeof(T).Equals(typeof(DateTime)) && this.Get<DateTime>(propName, loadFromDb: false) == DateTime.MinValue))
-            {
-                triggerChangeEvent = false;
-                if (value != null && isAList)
-                {
-                    var clone = (value as IEnumerable<object>).Cast<IModel<TModel>>().ToList();
-
-                    OriginalPropertyBag[propName] = clone;
-                }
-                else
-                {
-                    OriginalPropertyBag[propName] = value;
-                }
-            }
-            */
-
             this.PropertyBag[propName] = value;
 
             if (!_loadedProps.Contains(propName))

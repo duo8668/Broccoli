@@ -183,16 +183,6 @@ namespace Broccoli.Core.Database
 
     }
 
-    internal class BoxingT<TModel> where TModel : Model<TModel>, new()
-    {
-        public static TModel GenerateObject(DataRow dr)
-        {
-            TModel model = new TModel();
-            model.DataRow = dr;
-            return model;
-        }
-    }
-
     internal static class BroccoAutoSelectHelper
     {
         private static Regex rxSelect = new Regex(@"\A\s*(SELECT|EXECUTE|CALL|WITH|SET|DECLARE)\s",

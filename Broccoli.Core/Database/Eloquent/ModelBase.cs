@@ -42,7 +42,7 @@ namespace Broccoli.Core.Database.Eloquent
     {
         protected static string _modelName;
         private static string _selectSqlCache;
-        protected   List<string> _loadedProps = new List<string>();
+        protected List<string> _loadedProps = new List<string>();
         protected DataRow _myDr;
 
         public ModelBase()
@@ -59,6 +59,21 @@ namespace Broccoli.Core.Database.Eloquent
         [JsonIgnore]
         [PetaPoco.Ignore]
         public static string ModelName
+        {
+            get
+            {
+                if (_modelName == null)
+                {
+                    _modelName = typeof(TModel).Name;
+                }
+
+                return _modelName;
+            }
+        }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public string TS_ModelName
         {
             get
             {
@@ -190,7 +205,7 @@ namespace Broccoli.Core.Database.Eloquent
 
         [JsonIgnore]
         [PetaPoco.Ignore]
-        public DataRow DataRow
+        public int UpdateResult
         {
             get; set;
         }
@@ -279,7 +294,7 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 triggerChangeEvent = !PropertyBag[propName].Equals(OriginalPropertyBag[propName]);
             }
-            
+
             // Trigger the change event
             if (triggerChangeEvent) this.FirePropertyChanged(PocoColumns[propName]);
         }

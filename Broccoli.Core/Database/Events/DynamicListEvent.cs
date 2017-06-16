@@ -38,7 +38,7 @@ namespace Broccoli.Core.Database.Events
                             case ListChangedType.ItemAdded:
                             case ListChangedType.ItemDeleted:
                                 {
-                                    // this.FirePropertyChanged(prop);
+                                    //this.FirePropertyChanged(prop);
 
                                 }
                                 break;

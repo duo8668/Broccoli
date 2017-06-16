@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using Broccoli.Core.Database.Eloquent;
 namespace Broccoli
 {
     public partial class Form1 : Form
@@ -54,12 +54,12 @@ namespace Broccoli
 
             // search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
             var invToAdd = new Invoice();
-            invToAdd.InvoiceNum = "INV-333333";
+            invToAdd.InvoiceNum = "INV-555555";
             invToAdd.InvoiceDateTime = DateTime.Parse("2017-06-01 15:22");
             invToAdd.Save();
             Parallel.For(0, run, (ssss) =>
             {
-               // var holds = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+                // var holds = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
                 // var test = DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
 
                 // search.InvoiceNum = "INV-333333";

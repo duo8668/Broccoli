@@ -172,12 +172,14 @@ namespace Broccoli.Core.Database.Builder
         }
 
         #endregion
+
         #region WHERE STATEMENT
 
         public Builder.LinqSql<TModel> Where(string sql, params object[] args)
         {
             if (!string.IsNullOrEmpty(sql))
             {
+                sql = sql.Replace("WHERE", "");
                 _whereCondition.Enqueue(new SqlWhereHelper<TModel>(sql, args));
             }
 
@@ -295,8 +297,8 @@ namespace Broccoli.Core.Database.Builder
 
         public void Dispose()
         {
-            _whereCondition.Clear();
-            _tableCols.Clear();
+            // _whereCondition.Clear();
+            // _tableCols.Clear();
             //_joinClause.Clear(); 
         }
 

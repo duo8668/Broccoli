@@ -501,6 +501,10 @@ namespace PetaPoco
                     p.GetType().GetProperty("UdtTypeName").SetValue(p, "geometry", null); //geography is the equivalent SQL Server Type
                     p.Value = value;
                 }
+                else if (value.GetType().Name == "DateTime")
+                { 
+                    p.Value = ((DateTime)value).ToString("yyyy-MM-dd HH:mm:ss");
+                }
                 else
                 {
                     p.Value = value;

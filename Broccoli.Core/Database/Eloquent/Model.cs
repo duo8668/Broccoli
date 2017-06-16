@@ -1,5 +1,6 @@
 ﻿using Broccoli.Core.Database.Builder;
 using Broccoli.Core.Database.Events;
+using Broccoli.Core.Extensions;
 using Broccoli.Core.Facade;
 using System;
 using System.Collections.Generic;
@@ -34,18 +35,19 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static TModel Find(Func<LinqSql<TModel>, LinqSql<TModel>> _linq, bool withTrashed = false, params object[] args)
         {
-            return QueryAll(_linq, withTrashed, args).SingleOrDefault();
+            return QueryAll(_linq, withTrashed, args).FirstOrDefault();
         }
 
         public static TModel Find(Expression<Func<TModel, bool>> predicate, bool withTrashed = false, params object[] args)
         {
-            return QueryAll(predicate, withTrashed, args).SingleOrDefault();
+            return QueryAll(predicate, withTrashed, args).FirstOrDefault();
         }
 
         public static TModel Find(string _whereCondition, bool withTrashed = false, params object[] args)
         {
-            return QueryAll(_whereCondition, withTrashed, args).SingleOrDefault();
+            return QueryAll(_whereCondition, withTrashed, args).FirstOrDefault();
         }
+
         /// <summary>
         /// Final entry of the "Find". This function call should maintain a final copy of the SQL & arguments to be passed to the PetaPoco.
         /// </summary>
@@ -54,7 +56,7 @@ namespace Broccoli.Core.Database.Eloquent
         /// <returns></returns>
         public static TModel Find(string query, params object[] args)
         {
-            return QueryAll(query, args).SingleOrDefault();
+            return QueryAll(query, args).FirstOrDefault();
         }
 
         #region Async methods
@@ -152,14 +154,14 @@ namespace Broccoli.Core.Database.Eloquent
         /// TODO : implement finding the record by all properties value POST INSERT
         /// </summary>
         /// <returns></returns>
-        public TModel Save()
+        public void Save()
         {
             //* initialize an object for execute
             var toExecute = FilterTrashed();
 
             //* set the modified records. The logic behind will handle it without hassle
             ModifiedAt = DateTime.Now;
-             
+
             if (Id == 0)
             {
                 CreatedAt = DateTime.Now;
@@ -175,13 +177,21 @@ namespace Broccoli.Core.Database.Eloquent
                 {
                     toExecute.Value(red.ColumnName, red.value);
                 }
-                var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(toExecute.SQL, toExecute.Arguments);
-
+                // var ret = DbFacade.GetDatabaseConnection(ConnectionName).Insert(toExecute.SQL, toExecute.Arguments);
+                var ret = DbFacade.GetDatabaseConnection(ConnectionName).Insert(TableName, this);
                 //* implement finding the records by all matches
-                return null;
+                if (ret != null && ret.IsNumber())
+                {
+                    Id = long.Parse(ret.ToString());
+                }
+                else
+                {
+                    Id = long.MinValue;
+                }
             }
             else
             {
+                UpdateResult = int.MinValue;
                 //* Need to form value to save
                 var recordsToUpdate = from ModifiedProp in ModifiedColumns
                                       let pocoCol = PocoColumns[ModifiedProp]
@@ -191,12 +201,30 @@ namespace Broccoli.Core.Database.Eloquent
                 foreach (var red in recordsToUpdate)
                 {
                     toExecute.Set(red.ColumnName, red.value);
-                } 
-                var ret = DbFacade.GetDatabaseConnection(ConnectionName).Execute(toExecute.SQL, toExecute.Arguments);
-
-                return Find((model) => model.Id == Id, args: Id);
+                }
+                UpdateResult = DbFacade.GetDatabaseConnection(ConnectionName).Update(this);
             }
-         
+        }
+
+        private void RefreshEntity(Expression<Func<TModel, bool>> predicate, params object[] args)
+        {
+            if (predicate != null)
+            {
+                using (var _helper = new SqlWhereHelper<TModel>().VisitWhereCondition(predicate, args))
+                {
+                    RefreshEntity(_helper.Sql, _helper.Parameters);
+                }
+            }
+            else
+            {
+                RefreshEntity("", args);
+            }
+        }
+
+        private void RefreshEntity(string sql, params object[] args)
+        {
+            var newModel = Find(sql, false, args);
+            PropertyBag = newModel.PropertyBag;
         }
 
         #region Special relationship

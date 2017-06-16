@@ -151,9 +151,8 @@ namespace Broccoli.Core.Database.Eloquent
         }
 
         /// <summary>
-        /// TODO : implement finding the record by all properties value POST INSERT
+        /// 
         /// </summary>
-        /// <returns></returns>
         public void Save()
         {
             //* initialize an object for execute
@@ -177,7 +176,7 @@ namespace Broccoli.Core.Database.Eloquent
                 {
                     toExecute.Value(red.ColumnName, red.value);
                 }
-                // var ret = DbFacade.GetDatabaseConnection(ConnectionName).Insert(toExecute.SQL, toExecute.Arguments);
+
                 var ret = DbFacade.GetDatabaseConnection(ConnectionName).Insert(TableName, this);
                 //* implement finding the records by all matches
                 if (ret != null && ret.IsNumber())
@@ -206,6 +205,24 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
+        /// <summary>
+        /// Soft delete the current poco
+        /// </summary>
+        public void SoftDelete()
+        {
+            DeletedAt = DateTime.Now;
+            Save();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>The number of rows affected</returns>
+        public int PersistentDelete()
+        {
+            return DbFacade.GetDatabaseConnection(ConnectionName).Delete(this);
+        }
+
         private void RefreshEntity(Expression<Func<TModel, bool>> predicate, params object[] args)
         {
             if (predicate != null)
@@ -230,7 +247,6 @@ namespace Broccoli.Core.Database.Eloquent
         #region Special relationship
         public virtual IEnumerable<T> hasMany<T>(Expression<Func<TModel, T, bool>> onPredicate, Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
         {
-
             return null;
         }
 

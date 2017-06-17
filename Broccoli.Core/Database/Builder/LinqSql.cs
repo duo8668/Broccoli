@@ -217,7 +217,7 @@ namespace Broccoli.Core.Database.Builder
         {
             if (_sqlAction == SqlAction.Select && _tableCols.Count() > 0)
             {
-                string cols = string.Join(", ", (from c in _tableCols select _tableName + "." + c).ToArray());
+                string cols = string.Join(", ", (from c in _tableCols.Values select _tableName + "." + c).ToArray());
 
                 _sql = "SELECT " + cols + " FROM " + (string.IsNullOrEmpty(_exclusiveFromTable) ? _tableName : _exclusiveFromTable);
             }
@@ -297,9 +297,9 @@ namespace Broccoli.Core.Database.Builder
 
         public void Dispose()
         {
-            // _whereCondition.Clear();
-            // _tableCols.Clear();
-            //_joinClause.Clear(); 
+            _whereCondition?.Clear();
+            _tableCols?.Clear();
+            _joinClause?.Clear();
         }
 
         #region Additional LINQ handling

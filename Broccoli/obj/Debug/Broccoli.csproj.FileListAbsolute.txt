@@ -18,3 +18,8 @@ C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\D
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.csproj.GenerateResource.Cache
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.exe
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\obj\Debug\Broccoli.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\StackExchange.Redis.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\StackExchange.Redis.xml
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\RabbitMQ.Client.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\RabbitMQ.Client.xml
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli\bin\Debug\TaskQueue.config

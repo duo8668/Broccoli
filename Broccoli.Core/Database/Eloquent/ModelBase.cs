@@ -1,4 +1,5 @@
 ﻿using Broccoli.Core.Database.Builder;
+using Broccoli.Core.Database.Events;
 using Broccoli.Core.Facade;
 using Broccoli.Core.Utils;
 using Newtonsoft.Json;
@@ -40,40 +41,20 @@ namespace Broccoli.Core.Database.Eloquent
     [PetaPoco.PrimaryKey("id")]
     public class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
     {
+
         protected static string _modelName;
         private static string _selectSqlCache;
         protected List<string> _loadedProps = new List<string>();
-        protected DataRow _myDr;
 
         public ModelBase()
         {
             PropertyBag = new Dictionary<string, object>();
-            _selectSqlCache = BroccoAutoSelectHelper.AddSelectClause<TModel>(BroccoliDatabase.BroccoProvider);
-        }
-
-        public static void Init()
-        {
 
         }
 
         [JsonIgnore]
         [PetaPoco.Ignore]
         public static string ModelName
-        {
-            get
-            {
-                if (_modelName == null)
-                {
-                    _modelName = typeof(TModel).Name;
-                }
-
-                return _modelName;
-            }
-        }
-
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public string TS_ModelName
         {
             get
             {
@@ -112,6 +93,10 @@ namespace Broccoli.Core.Database.Eloquent
         {
             get
             {
+                if (string.IsNullOrEmpty(_selectSqlCache))
+                {
+                    _selectSqlCache = BroccoAutoSelectHelper.AddSelectClause<TModel>(BroccoliDatabase.BroccoProvider);
+                }
                 return _selectSqlCache;
             }
         }
@@ -214,7 +199,7 @@ namespace Broccoli.Core.Database.Eloquent
         [JsonIgnore]
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
-        
+
         /**
          * Entity Property Getter.
          * All _"mapped"_ properties need to implement this as their Getter.
@@ -421,6 +406,52 @@ namespace Broccoli.Core.Database.Eloquent
         private Dictionary<string, object> _OriginalPropertyBag;
         private static int _OriginalPropertyBagCount;
         #endregion
+
+        #region DYNAMIC LIST HANDLING
+
+        public delegate void ModelSavedEventHandler(object sender, ModelChangedEventArgs<TModel> e);
+        public event ModelSavedEventHandler ModelSavedEvent;
+
+        Dictionary<string, dynamic> specialList = new Dictionary<string, dynamic>();
+
+        public List<T> getDynamicBindingList<T>(IEnumerable<T> list) where T : Model<T>, new()
+        {
+            return Activator.CreateInstance
+             (
+                 typeof(List<>).MakeGenericType
+                 (
+                     list.GetType().GenericTypeArguments[0]
+                 )
+             ) as List<T>;
+            /*
+             * // is it neessary to listen to the list now?
+            bindingList.ListChanged += new ListChangedEventHandler
+            (
+                (sender, e) =>
+                {
+                    if (!triggerChangeEvent) return;
+
+                    switch (e.ListChangedType)
+                    {
+                        case ListChangedType.ItemAdded:
+                        case ListChangedType.ItemDeleted:
+                            {
+                                var changed = PocoColumns[e.PropertyDescriptor.Name];
+
+
+                            }
+                            break;
+                    }
+                }
+            );
+            */
+        }
+
+        protected void OnModelSaved(object sender, ModelChangedEventArgs<TModel> e)
+        {
+            ModelSavedEvent?.Invoke(sender, e);
+        }
+        #endregion
     }
 
     public static class ModelExtensionMethods
@@ -444,5 +475,6 @@ namespace Broccoli.Core.Database.Eloquent
                 }
             }
         }
+
     }
 }

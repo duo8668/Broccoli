@@ -12,6 +12,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Broccoli.Core.Database.Eloquent;
+using StackExchange.Redis;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+
 namespace Broccoli
 {
     public partial class Form1 : Form
@@ -23,72 +27,155 @@ namespace Broccoli
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            /*
-            //Invoice inv = Invoice.Find("1");
-            long firstLong = DateTime.Now.Ticks;
-            label1.Text = "" + firstLong;
-            System.Threading.Thread.Sleep(1000);
-            long secondLong = DateTime.Now.Ticks;
-            label2.Text = "" + secondLong;
-            long longDiff = secondLong - firstLong;
-            label3.Text = string.Format("{0}   {1}：{2}", longDiff, (new DateTime(longDiff)).Second, (new DateTime(longDiff)).Ticks);
-
-            var connStrings = System.Configuration.ConfigurationManager.ConnectionStrings;
-
-            foreach (ConnectionStringSettings connString in connStrings)
-            {
-
-            }
-            */
             DbFacade.Initialize();
-            ModelFacade.LoadClassConfig();
+            MessageWorkerFacade.Initialize();
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            var from = DateTime.Parse("2017-05-06");
-            Invoice search = new Invoice();
-            int run = 1;
+            int run = 10;
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
-            // search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-            var invToAdd = new Invoice();
-            invToAdd.InvoiceNum = "INV-555555";
-            invToAdd.InvoiceDateTime = DateTime.Parse("2017-06-01 15:22");
-            invToAdd.Save();
+            var rabbitChannel = testInitRabbitMQChannel();
+            //testRabbitMQConsume(rabbitChannel);
+            var search = pureQueryPerformancetest();
+
             Parallel.For(0, run, (ssss) =>
             {
-                // var holds = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-                // var test = DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
-
-                // search.InvoiceNum = "INV-333333";
-                // search = search.Save();
-                // var stringTest = search.InvoiceNum;
-                // search.InvoiceNum = "INV-222222";
-                //search.Save();
-                // var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
-
-                // foreach (var ccc in custs)
-                // {
-                // }
-                // search.InvoiceNum2 = "INV-333333"; 
+                explicitlySavePerformanceTest(search);
+                //testRabbitMQPub(rabbitChannel);
             });
-            // for (int i = 0; i < run; i++)
-            // {
-            //      search = Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-            //      search = Invoice.Find(_whereCondition: "invoice_num=@0", args: "INV-222222");
-            //  }
 
             var time2 = DateTime.Now;
             label2.Text = time2.ToString("HH:mm:ss.fffff");
 
             var time3 = time2 - time1;
-            //   search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
             label3.Text = "" + time3.TotalMilliseconds + " ::   Avg: " + (time3.TotalMilliseconds / run);
 
         }
 
+        #region RabbitMQ TEST
+        private IModel testInitRabbitMQChannel()
+        {
+            IModel channel;
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            var connection = factory.CreateConnection();
+
+            channel = connection.CreateModel();
+            /*
+            channel.ExchangeDeclare("logs", "fanout");
+            */
+            channel.QueueDeclare(queue: "task_queue",
+                             durable: true,
+                             exclusive: false,
+                             autoDelete: false,
+                             arguments: null);
+            channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+            return channel;
+
+        }
+        public void testRabbitMQPub(IModel channel)
+        {
+            // var message = GetMessage(args);
+            /* PUBLISH SUBSCBRIBE
+            var body = Encoding.UTF8.GetBytes("Hello World!");
+            channel.BasicPublish(exchange: "logs",
+                                 routingKey: "",
+                                 basicProperties: null,
+                                 body: body);
+              */
+            var message = "Hello world!";
+            var body = Encoding.UTF8.GetBytes(message);
+
+            var properties = channel.CreateBasicProperties();
+            properties.Persistent = true;
+
+            channel.BasicPublish(exchange: "",
+                                 routingKey: "task_queue",
+                                 basicProperties: properties,
+                                 body: body);
+            Console.WriteLine(" [x] Sent {0}", message);
+        }
+
+        public void testRabbitMQConsume(IModel channel)
+        {
+            var consumer = new EventingBasicConsumer(channel);
+            consumer.Received += (model, ea) =>
+            {
+                var body = ea.Body;
+                var message = Encoding.UTF8.GetString(body);
+                textBox1.Text += string.Format(" [x] Received {0}" + System.Environment.NewLine, message);
+
+            };
+            channel.BasicConsume(queue: "task_queue", noAck: true, consumer: consumer);
+        }
+
+        private static string GetMessage(string[] args)
+        {
+            return ((args.Length > 0) ? string.Join(" ", args) : "Hello World!");
+        }
+        #endregion
+
+        #region REDIS FAILED PERFORMANCE TEST
+        //* REDIS TEST FAILED, memory doesnt pass the test
+        private void ConnectRedis()
+        {
+            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost:6650");
+        }
+
+        private void testRedis(ConnectionMultiplexer redis)
+        {
+            redis = ConnectionMultiplexer.Connect("localhost:6650");
+
+            ISubscriber sub = redis.GetSubscriber();
+        }
+        #endregion
+
+        private void hasManyPerformanceTest(Invoice search)
+        {
+            var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
+
+        }
+
+        private Invoice pureQueryPerformancetest()
+        {
+            return Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
+            // var test = DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
+            //var search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
+        }
+        private void pureInsertPerformanceTest()
+        {
+            var invToAdd = new Invoice();
+            invToAdd.InvoiceNum = "INV-555555";
+            invToAdd.InvoiceDateTime = DateTime.Parse("2017-06-01 15:22");
+            invToAdd.Save();
+        }
+
+        private void pureUpdatePerformanceTest(Invoice search)
+        {
+            search.InvoiceNum = "INV-333333";
+            search.Save();
+            var stringTest = search.InvoiceNum;
+            search.InvoiceNum = "INV-222222";
+            search.Save();
+        }
+
+        private void explicitlySavePerformanceTest(Invoice search)
+        {
+            var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true);
+
+            foreach (var cust in custs)
+            {
+                cust.LastName += "_";
+            }
+            search.Save();
+            foreach (var cust in custs)
+            {
+                cust.LastName = cust.LastName.Replace("_", "");
+            }
+            //search.Save();
+        }
         private string testArgs(string main = "", params object[] args)
         {
             foreach (var arg in args)

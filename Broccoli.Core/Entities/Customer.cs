@@ -11,6 +11,11 @@ namespace Broccoli.Core.Entities
     [PetaPoco.ExplicitColumns]
     public class Customer : Model<Customer>
     {
+        public Customer()
+        {
+
+        }
+
         [PetaPoco.Column("firstname")]
         public string FirstName
         {

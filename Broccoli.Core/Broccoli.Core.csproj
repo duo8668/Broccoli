@@ -44,12 +44,19 @@
     <Reference Include="Newtonsoft.Json.Schema, Version=3.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.Schema.3.0.1\lib\net45\Newtonsoft.Json.Schema.dll</HintPath>
     </Reference>
+    <Reference Include="RabbitMQ.Client, Version=4.0.0.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
+      <HintPath>..\packages\RabbitMQ.Client.4.1.3\lib\net451\RabbitMQ.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="StackExchange.Redis, Version=1.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StackExchange.Redis.1.2.3\lib\net45\StackExchange.Redis.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Linq" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Linq.Dynamic, Version=1.0.6132.35681, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Linq.Dynamic.1.0.7\lib\net40\System.Linq.Dynamic.dll</HintPath>
     </Reference>
@@ -63,6 +70,8 @@
   <ItemGroup>
     <Compile Include="Configuration\DbSchemaConfiguration.cs" />
     <Compile Include="Configuration\ModelSchemaConfig.cs" />
+    <Compile Include="Configuration\TaskQueueConfig.cs" />
+    <Compile Include="Configuration\TaskQueueConfiguration.cs" />
     <Compile Include="Database\Attributes\ConnectionStringAttribute.cs" />
     <Compile Include="Database\Attributes\SqlTableNameAttribute.cs" />
     <Compile Include="Database\BroccoliDatabase.cs" />
@@ -74,7 +83,9 @@
     <Compile Include="Database\Eloquent\IModelBase.cs" />
     <Compile Include="Database\Eloquent\Model.cs" />
     <Compile Include="Database\Eloquent\ModelBase.cs" />
+    <Compile Include="Database\Events\ModelSavedEventHandler.cs" />
     <Compile Include="Database\Events\DynamicListEvent.cs" />
+    <Compile Include="Database\Events\ModelChangedEventArgs.cs" />
     <Compile Include="Database\Exceptions\Exception.cs" />
     <Compile Include="Database\IBroccoliDatabase.cs" />
     <Compile Include="Database\Utils\Converters\PredicateConverter.cs" />
@@ -86,6 +97,7 @@
     <Compile Include="Extensions\ExtensionMethods.cs" />
     <Compile Include="Facade\DbFacade.cs" />
     <Compile Include="Facade\Facade.cs" />
+    <Compile Include="Facade\MessageWorkerFacade.cs" />
     <Compile Include="Facade\ModelFacade.cs" />
     <Compile Include="Factory\ModelFactory.cs" />
     <Compile Include="Models\PetaPoco.cs" />
@@ -97,6 +109,9 @@
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="sql_server_tableCommand.config" />
+    <None Include="TaskQueue.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

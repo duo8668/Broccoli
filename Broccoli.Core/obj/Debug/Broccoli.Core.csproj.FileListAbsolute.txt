@@ -10,4 +10,9 @@ C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.Schema.xml
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.pdb
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\StackExchange.Redis.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\StackExchange.Redis.xml
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\RabbitMQ.Client.dll
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\RabbitMQ.Client.xml
+C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\bin\Debug\TaskQueue.config
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.csprojResolveAssemblyReference.cache

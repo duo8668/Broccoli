@@ -161,26 +161,12 @@ namespace Broccoli.Core.Facade
         {
             GetAllModels().ForEach(model =>
             {
-                DoPocoModelInitialization(model);
                 InitConnectionNamesCache(model);
                 InitTableNamesCache(model);
                 DoPocoDatasInitialization(model);
                 DoPocoColumnsInitialization(model);
                 DoDynamicModelInitialization(model);
             });
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="model"></param>
-        protected static void DoPocoModelInitialization(Type model)
-        {
-            var method = model.GetMethod("Init", BindingFlags.Static
-                 | BindingFlags.FlattenHierarchy
-                 | BindingFlags.Public
-                 | BindingFlags.NonPublic);
-            method.Invoke(null, null);
         }
 
         /// <summary>

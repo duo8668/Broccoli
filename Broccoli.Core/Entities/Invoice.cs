@@ -44,5 +44,13 @@ namespace Broccoli.Core.Entities
             }
         }
 
+        [PetaPoco.Ignore]
+        public IEnumerable<Customer> Customers
+        {
+            get
+            {
+                return hasMany<Customer>();
+            }
+        }
     }
 }

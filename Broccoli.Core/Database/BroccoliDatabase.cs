@@ -208,8 +208,8 @@ namespace Broccoli.Core.Database
                 var tableName = provider.EscapeTableName(pd.TableInfo.TableName);
                 Monitor.Enter(_selectCacheLock);
                 if (!_autoSelectCache.TryGetValue(tableName, out storedSql))
-                {
-
+                { 
+                   // string first = string.Join(", ", (from c in pd.QueryColumns select tableName + "." + provider.EscapeSqlIdentifier(c)).ToArray());
                     string cols = pd.Columns.Count != 0
                    ? string.Join(", ", (from c in pd.QueryColumns select tableName + "." + provider.EscapeSqlIdentifier(c)).ToArray())
                    : "NULL";

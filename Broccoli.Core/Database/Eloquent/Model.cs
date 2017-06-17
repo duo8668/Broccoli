@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-
+using Broccoli.Core.Database.Eloquent;
 namespace Broccoli.Core.Database.Eloquent
 {
     /*
@@ -164,29 +164,36 @@ namespace Broccoli.Core.Database.Eloquent
             if (Id == 0)
             {
                 CreatedAt = DateTime.Now;
+
                 //* Need to form value to save
                 var recordsToInsert = from pocoCol in PocoColumns.Values
                                       where PropertyBag.ContainsKey(pocoCol.PropertyInfo.Name)
                                       select new { pocoCol.ColumnName, value = PropertyBag[pocoCol.PropertyInfo.Name] };
-                //* Do insert here
-                toExecute
-                    .Insert((from c in recordsToInsert select c.ColumnName).ToArray())
-                    .Into(TableName);
-                foreach (var red in recordsToInsert)
+
+                //* The condition here is when the number of records to add is more than 2, which is excluding ModifiedAt and CreatedAt
+                if (recordsToInsert.Count() > 2)
                 {
-                    toExecute.Value(red.ColumnName, red.value);
+                    //* Do insert here
+                    toExecute
+                        .Insert((from c in recordsToInsert select c.ColumnName).ToArray())
+                        .Into(TableName);
+                    foreach (var red in recordsToInsert)
+                    {
+                        toExecute.Value(red.ColumnName, red.value);
+                    }
+
+                    var ret = DbFacade.GetDatabaseConnection(ConnectionName).Insert(TableName, this);
+                    //* implement finding the records by all matches
+                    if (ret != null && ret.IsNumber())
+                    {
+                        Id = long.Parse(ret.ToString());
+                    }
+                    else
+                    {
+                        Id = long.MinValue;
+                    }
                 }
 
-                var ret = DbFacade.GetDatabaseConnection(ConnectionName).Insert(TableName, this);
-                //* implement finding the records by all matches
-                if (ret != null && ret.IsNumber())
-                {
-                    Id = long.Parse(ret.ToString());
-                }
-                else
-                {
-                    Id = long.MinValue;
-                }
             }
             else
             {
@@ -195,13 +202,19 @@ namespace Broccoli.Core.Database.Eloquent
                 var recordsToUpdate = from ModifiedProp in ModifiedColumns
                                       let pocoCol = PocoColumns[ModifiedProp]
                                       select new { pocoCol.ColumnName, value = PropertyBag[ModifiedProp] };
-                //* Do update here
-                toExecute.Update().Where((model) => model.Id == Id);
-                foreach (var red in recordsToUpdate)
+
+                //* The condition here is excluding ModifiedAt
+                if (recordsToUpdate.Count() > 1)
                 {
-                    toExecute.Set(red.ColumnName, red.value);
+                    //* Do update here
+                    toExecute.Update().Where((model) => model.Id == Id);
+                    foreach (var red in recordsToUpdate)
+                    {
+                        toExecute.Set(red.ColumnName, red.value);
+                    }
+                    UpdateResult = DbFacade.GetDatabaseConnection(ConnectionName).Update(this);
                 }
-                UpdateResult = DbFacade.GetDatabaseConnection(ConnectionName).Update(this);
+                OnModelSaved(this, null);
             }
         }
 
@@ -250,7 +263,7 @@ namespace Broccoli.Core.Database.Eloquent
             return null;
         }
 
-        public virtual IEnumerable<T> hasMany<T>(Expression<Func<T, bool>> predicate, bool withTrashed = false) where T : Model<T>, new()
+        public virtual IEnumerable<T> hasMany<T>(Expression<Func<T, bool>> predicate = null, bool withTrashed = false) where T : Model<T>, new()
         {
             //* Initialize target model
             var targetModel = DbFacade.DynamicModels[typeof(T).Name];
@@ -264,7 +277,7 @@ namespace Broccoli.Core.Database.Eloquent
 
             // Call the FindAll to return the result
             var results = targetModel.FindAll<T>(
-                (lin) => lin.Select(thatTableName + ".*")
+                (lin) => lin.Select("*")
                             .From(thisTableName)
                             .Join(intermediaTable)
                             .On(fnHasManyMyKey(PocoData.TableInfo), fnStdGenerateForeignKey(thisTableName, intermediaTable), "")
@@ -272,7 +285,11 @@ namespace Broccoli.Core.Database.Eloquent
                             .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
                             .Where(predicate));
 
-            DynamicListEvent.triggerDynamicListListening<T>(results);
+            //* Add the list into observer so that it can execute save when the parent call save. 
+            ModelSavedEvent += (o, ee) =>
+            {
+                (results as IEnumerable<T>).Save();
+            };
 
             return results;
         }

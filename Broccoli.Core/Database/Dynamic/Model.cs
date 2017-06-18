@@ -57,7 +57,7 @@ namespace Broccoli.Core.Database.Dynamic
 
         public dynamic GetStatic(string propName)
         {
-            var prop= this.ModelType.GetProperty
+            var prop = this.ModelType.GetProperty
             (
                 propName,
                 BindingFlags.FlattenHierarchy |
@@ -183,7 +183,7 @@ namespace Broccoli.Core.Database.Dynamic
             get { return this.Instance.DeletedAt; }
             set { this.Instance.DeletedAt = value; }
         }
-        
+
         public string ToJson()
         {
             return this.Instance.ToJson();
@@ -213,7 +213,7 @@ namespace Broccoli.Core.Database.Dynamic
         {
             this.Instance.Set<T>(value, propName, triggerChangeEvent);
         }
-   
+
         public dynamic FilterTrashed(bool withTrashed = false, params object[] args)
         {
             return this.InvokeStatic("FilterTrashed", withTrashed);
@@ -237,7 +237,11 @@ namespace Broccoli.Core.Database.Dynamic
         public dynamic Find<T>(Func<LinqSql<T>, LinqSql<T>> _linq, bool withTrashed = false, params object[] args) where T : Eloquent.Model<T>, new()
         {
             return this.InvokeStatic("Find", _linq, withTrashed, args);
+        }
 
+        public dynamic Find(string _whereCondition, bool withTrashed = false, params object[] args)
+        {
+            return this.InvokeStatic("Find", _whereCondition, withTrashed, args);
         }
 
         public dynamic FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
@@ -299,7 +303,7 @@ namespace Broccoli.Core.Database.Dynamic
         {
             return this.InvokeStatic("First", predicate, withTrashed);
         }
-         
+
         public dynamic FirstOrDefault(bool withTrashed = false)
         {
             return this.InvokeStatic("FirstOrDefault", withTrashed);

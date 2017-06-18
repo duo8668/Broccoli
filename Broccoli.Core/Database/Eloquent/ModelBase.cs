@@ -445,7 +445,7 @@ namespace Broccoli.Core.Database.Eloquent
 
     public static class ModelExtensionMethods
     {
-        public static void Save<T>(this IEnumerable<T> enumerable, dynamic parent = null) where T : Model<T>, new()
+        public static void Save<T>(this IEnumerable<T> enumerable, dynamic parent = null, dynamic references = null) where T : Model<T>, new()
         {
             if (enumerable == null) return;
 
@@ -453,14 +453,14 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 Parallel.ForEach(enumerable, (item) =>
                 {
-                    item.Save(parent);
+                    item.Save(parent, references);
                 });
             }
             else
             {
                 foreach (var item in enumerable)
                 {
-                    item.Save(parent);
+                    item.Save(parent, references);
                 }
             }
         }

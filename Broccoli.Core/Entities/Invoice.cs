@@ -21,7 +21,7 @@ namespace Broccoli.Core.Entities
         
         private void Invoice_ModelSavedEvent(object sender, Database.Events.ModelChangedEventArgs<Invoice> e)
         {
-            Customers.Save(this);
+            Customers.Save(this, _originalCustomers);
         }
 
         public void Dispose()
@@ -55,6 +55,7 @@ namespace Broccoli.Core.Entities
         }
 
         private IEnumerable<Customer> _customers;
+        private IEnumerable<Customer> _originalCustomers;
 
         [PetaPoco.Ignore]
         public IEnumerable<Customer> Customers
@@ -64,6 +65,7 @@ namespace Broccoli.Core.Entities
                 if (_customers == null)
                 {
                     _customers = hasMany<Customer>();
+                    _originalCustomers = _customers.AsEnumerable();
                 }
                 return _customers;
             }

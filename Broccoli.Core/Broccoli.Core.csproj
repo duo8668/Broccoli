@@ -94,7 +94,9 @@
     <Compile Include="Entities\Core\InformationSchema.cs" />
     <Compile Include="Entities\Customer.cs" />
     <Compile Include="Entities\Invoice.cs" />
+    <Compile Include="Entities\InvoiceCustomer.cs" />
     <Compile Include="Extensions\ExtensionMethods.cs" />
+    <Compile Include="Extensions\ExtensionMethodSingleton.cs" />
     <Compile Include="Facade\DbFacade.cs" />
     <Compile Include="Facade\Facade.cs" />
     <Compile Include="Facade\MessageWorkerFacade.cs" />

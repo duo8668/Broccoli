@@ -8,6 +8,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Broccoli.Core.Database.Eloquent;
+using System.Reflection;
+
 namespace Broccoli.Core.Database.Eloquent
 {
     /*
@@ -20,6 +22,7 @@ namespace Broccoli.Core.Database.Eloquent
     {
         protected Func<PetaPoco.TableInfo, string> fnHasManyMyKey = tblInfo => tblInfo.TableName + "." + tblInfo.PrimaryKey;
         protected Func<string, string, string> fnStdGenerateForeignKey = DbFacade.GenerateOnClauseForeignKey;
+        protected Func<string, string, string> fnStdGenerateIntermediateModelName = ModelFacade.GenerateIntermediateModelName;
 
         public static LinqSql<TModel> FilterTrashed(bool withTrashed = false)
         {
@@ -218,6 +221,42 @@ namespace Broccoli.Core.Database.Eloquent
             }
         }
 
+        public void Save<T>(T parent = null) where T : Model<T>, new()
+        {
+            //* if there is parent pass by reference, means we need to save the entity as well besides saving the child objects
+            if (parent != null)
+            {
+                var parentModelName = typeof(T).Name;
+
+                bool toInsertNewEntity = true;
+                //* check if id is invalid, if it is then we need to get the created ID of THIS and add the relationship
+                if (Id <= 0)
+                {
+
+                }
+                else
+                {
+                    //* just in case we need to do anything, although so far we might not need it.
+                }
+
+                if (toInsertNewEntity)
+                {
+                    //* Get this table and that table name
+                    var thatModel = Dynamic(parent);
+                    var thisModelName = ModelName;
+                    var thatModelName = thatModel.ModelName;
+
+                    //* Initialize target model
+                    //  var targetModel = DbFacade.DynamicModels[fnStdGenerateIntermediateModelName(ModelName, thatModelName)];
+                    var targetModel = Dynamic(ModelFacade.GenerateIntermediateModel(fnStdGenerateIntermediateModelName(ModelName, thatModelName)));
+                    targetModel.Set(Id, ModelName + "Id");
+                    targetModel.Set(thatModel.Id, thatModelName + "Id");
+                    // targetModel.Save();
+                }
+
+            }
+        }
+
         /// <summary>
         /// Soft delete the current poco
         /// </summary>
@@ -283,14 +322,15 @@ namespace Broccoli.Core.Database.Eloquent
                             .On(fnHasManyMyKey(PocoData.TableInfo), fnStdGenerateForeignKey(thisTableName, intermediaTable), "")
                             .Join(thatTableName)
                             .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
-                            .Where(predicate));
+                            .Where(predicate)) as IEnumerable<T>;
 
             //* Add the list into observer so that it can execute save when the parent call save. 
+            /*
             ModelSavedEvent += (o, ee) =>
-            {
-                (results as IEnumerable<T>).Save();
-            };
-
+           {
+               results.Save();
+           };
+           */
             return results;
         }
 

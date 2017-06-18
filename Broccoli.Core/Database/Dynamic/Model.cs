@@ -57,16 +57,27 @@ namespace Broccoli.Core.Database.Dynamic
 
         public dynamic GetStatic(string propName)
         {
-            return this.ModelType.GetProperty
+            var prop= this.ModelType.GetProperty
             (
                 propName,
                 BindingFlags.FlattenHierarchy |
                 BindingFlags.Public |
                 BindingFlags.Static
-            ).GetValue(null);
+            );
 
-
+            return prop.GetValue(null);
         }
+
+        public dynamic GetNormal(string propName)
+        {
+            return this.ModelType.GetProperty
+            (
+                propName,
+                BindingFlags.FlattenHierarchy |
+                BindingFlags.Static
+            ).GetValue(null);
+        }
+
         public dynamic GetStaticField(string fieldName)
         {
             return this.ModelType.GetField(fieldName, BindingFlags.Static
@@ -96,6 +107,13 @@ namespace Broccoli.Core.Database.Dynamic
             return (T)this.GetStaticField(fieldName);
         }
 
+        public string ModelName
+        {
+            get
+            {
+                return this.GetStatic("ModelName");
+            }
+        }
 
         public string TableName
         {
@@ -121,7 +139,7 @@ namespace Broccoli.Core.Database.Dynamic
             }
         }
 
-        public int Id
+        public long Id
         {
             get { return this.Instance.Id; }
             set { this.Instance.Id = value; }
@@ -165,8 +183,7 @@ namespace Broccoli.Core.Database.Dynamic
             get { return this.Instance.DeletedAt; }
             set { this.Instance.DeletedAt = value; }
         }
-
-
+        
         public string ToJson()
         {
             return this.Instance.ToJson();
@@ -196,17 +213,7 @@ namespace Broccoli.Core.Database.Dynamic
         {
             this.Instance.Set<T>(value, propName, triggerChangeEvent);
         }
-
-        public dynamic Hydrate(Dictionary<string, object> record, bool fromUser = false)
-        {
-            return this.InvokeStatic("Hydrate", record, fromUser);
-        }
-
-        public dynamic Hydrate(List<Dictionary<string, object>> records, bool fromUser = false, params object[] args)
-        {
-            return this.InvokeStatic("Hydrate", records, fromUser);
-        }
-
+   
         public dynamic FilterTrashed(bool withTrashed = false, params object[] args)
         {
             return this.InvokeStatic("FilterTrashed", withTrashed);
@@ -232,6 +239,7 @@ namespace Broccoli.Core.Database.Dynamic
             return this.InvokeStatic("Find", _linq, withTrashed, args);
 
         }
+
         public dynamic FindAll(string _whereCondition = "", bool withTrashed = false, params object[] args)
         {
             return this.InvokeStatic("FindAll", _whereCondition, withTrashed, args);

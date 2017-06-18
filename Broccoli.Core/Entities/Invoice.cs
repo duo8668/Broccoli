@@ -11,11 +11,21 @@ namespace Broccoli.Core.Entities
 {
     [PetaPoco.TableName("sales__invoice")]
     [PetaPoco.ExplicitColumns]
-    public class Invoice : Model<Invoice>
+    public class Invoice : Model<Invoice>,IDisposable
     {
         public Invoice()
         {
+            ModelSavedEvent += Invoice_ModelSavedEvent;
+        }
 
+        
+        private void Invoice_ModelSavedEvent(object sender, Database.Events.ModelChangedEventArgs<Invoice> e)
+        {
+            Customers.Save(this);
+        }
+
+        public void Dispose()
+        {
         }
 
         [PetaPoco.Column("invoice_num")]
@@ -44,12 +54,18 @@ namespace Broccoli.Core.Entities
             }
         }
 
+        private IEnumerable<Customer> _customers;
+
         [PetaPoco.Ignore]
         public IEnumerable<Customer> Customers
         {
             get
             {
-                return hasMany<Customer>();
+                if (_customers == null)
+                {
+                    _customers = hasMany<Customer>();
+                }
+                return _customers;
             }
         }
     }

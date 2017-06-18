@@ -63,7 +63,7 @@ namespace Broccoli.Core.Facade
 
             _AllModels = new HashSet<Type>();
 
-            AppDomain.CurrentDomain.GetAssemblies().ToList().ForEach(assembly =>
+            AppDomain.CurrentDomain.GetAssemblies().AsEnumerable().ForEach(assembly =>
             {
                 assembly.GetTypes()
                 .Where(type => type.IsSubclassOf(typeof(ModelBase)))
@@ -80,6 +80,14 @@ namespace Broccoli.Core.Facade
             get
             {
                 return _connectionNamesCache;
+            }
+        }
+
+        public static Dictionary<string, string> AllTableNames
+        {
+            get
+            {
+                return _dbAllTablesCache;
             }
         }
 
@@ -163,10 +171,24 @@ namespace Broccoli.Core.Facade
             {
                 InitConnectionNamesCache(model);
                 InitTableNamesCache(model);
+                DoPocoModelInitialization(model);
                 DoPocoDatasInitialization(model);
                 DoPocoColumnsInitialization(model);
                 DoDynamicModelInitialization(model);
             });
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
+        protected static void DoPocoModelInitialization(Type model)
+        {
+            var method = model.GetMethod("Init", BindingFlags.Static
+                 | BindingFlags.FlattenHierarchy
+                 | BindingFlags.Public
+                 | BindingFlags.NonPublic);
+            method.Invoke(null, null);
         }
 
         /// <summary>

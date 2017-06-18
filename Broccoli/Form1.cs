@@ -33,17 +33,18 @@ namespace Broccoli
 
         private void button1_Click(object sender, EventArgs e)
         {
-            int run = 10;
+            int run = 1;
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
 
             var rabbitChannel = testInitRabbitMQChannel();
             //testRabbitMQConsume(rabbitChannel);
             var search = pureQueryPerformancetest();
-
+            explicitlySavePerformanceTest(search);
+            search.Dispose();
             Parallel.For(0, run, (ssss) =>
             {
-                explicitlySavePerformanceTest(search);
+                //   explicitlySavePerformanceTest(search);
                 //testRabbitMQPub(rabbitChannel);
             });
 
@@ -141,8 +142,8 @@ namespace Broccoli
         private Invoice pureQueryPerformancetest()
         {
             return Invoice.Find((myInv) => myInv.InvoiceNum == "INV-222222");
-            // var test = DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
-            //var search = Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
+            // return DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
+            // return Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
         }
         private void pureInsertPerformanceTest()
         {
@@ -163,18 +164,18 @@ namespace Broccoli
 
         private void explicitlySavePerformanceTest(Invoice search)
         {
-            var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true);
+            // var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true);
 
-            foreach (var cust in custs)
+            foreach (var cust in search.Customers)
             {
                 cust.LastName += "_";
             }
             search.Save();
-            foreach (var cust in custs)
+            foreach (var cust in search.Customers)
             {
                 cust.LastName = cust.LastName.Replace("_", "");
             }
-            //search.Save();
+        //    search.Save();
         }
         private string testArgs(string main = "", params object[] args)
         {
@@ -184,6 +185,11 @@ namespace Broccoli
             }
 
             return main;
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Application.Exit();
         }
     }
 

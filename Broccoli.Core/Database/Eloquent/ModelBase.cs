@@ -1,5 +1,6 @@
 ﻿using Broccoli.Core.Database.Builder;
 using Broccoli.Core.Database.Events;
+using Broccoli.Core.Extensions;
 using Broccoli.Core.Facade;
 using Broccoli.Core.Utils;
 using Newtonsoft.Json;
@@ -46,10 +47,41 @@ namespace Broccoli.Core.Database.Eloquent
         private static string _selectSqlCache;
         protected List<string> _loadedProps = new List<string>();
 
+        //* Special method for calling Extended Save on IEnumerable type
+        protected static Dictionary<string, MethodInfo> _extMethodInfos;
+        protected static Dictionary<string, MethodInfo> ExtMethodInfos
+        {
+            get
+            {
+                if (_extMethodInfos == null)
+                {
+                    _extMethodInfos = new Dictionary<string, MethodInfo>();
+                }
+                return _extMethodInfos;
+            }
+        }
+
         public ModelBase()
         {
             PropertyBag = new Dictionary<string, object>();
+        }
 
+        public static void Init()
+        {
+            // LoadIEnumerable();
+        }
+        public static void LoadIEnumerable()
+        {
+            typeof(TModel).GetProperties().ForEach((prop) =>
+            {
+                if (prop.PropertyType.Name.Equals(typeof(IEnumerable<>).Name))
+                {
+                    //* if the property return type if IEnumerable, then most likely it is one of the Entity
+                    // ExtMethodInfos.Add(ExtensionMethodSingleton.GetIEnumerableSaveMethodName(), ExtensionMethodSingleton.GetIEnumerableSaveMethod());
+                    //DynamicListPropertyInfos.Add(prop.Name, prop);
+                    //m.Invoke(prop.GetValue(this, null),null);
+                }
+            });
         }
 
         [JsonIgnore]
@@ -199,6 +231,53 @@ namespace Broccoli.Core.Database.Eloquent
         [JsonIgnore]
         [PetaPoco.Ignore]
         public Dictionary<string, object> PropertyBag { get; protected set; }
+
+        [JsonIgnore]
+        [PetaPoco.Ignore]
+        public Dictionary<string, object> OriginalPropertyBag
+        {
+            get
+            {
+                if (_OriginalPropertyBag == null)
+                {
+                    // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
+                    // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
+
+                    _OriginalPropertyBag = new Dictionary<string, object>();
+
+                    foreach (var kyp in PocoData.Columns)
+                    {
+                        var prop = kyp.Value.PropertyInfo;
+                        if (TypeMapper.IsList(prop.PropertyType))
+                        {
+                            _OriginalPropertyBag[prop.Name] =
+                            Activator.CreateInstance
+                            (
+                                typeof(List<>).MakeGenericType
+                                (
+                                    prop.PropertyType.GenericTypeArguments[0]
+                                )
+                            );
+                        }
+                        else if (prop.PropertyType.IsValueType)
+                        {
+                            _OriginalPropertyBag[prop.Name] = Activator
+                            .CreateInstance(prop.PropertyType);
+                        }
+                        else
+                        {
+                            _OriginalPropertyBag[prop.Name] = null;
+                        }
+                    }
+                    _OriginalPropertyBagCount = _OriginalPropertyBag.Count();
+                }
+
+                return _OriginalPropertyBag;
+            }
+        }
+
+        private Dictionary<string, object> _OriginalPropertyBag;
+        private static int _OriginalPropertyBagCount;
 
         /**
          * Entity Property Getter.
@@ -351,112 +430,22 @@ namespace Broccoli.Core.Database.Eloquent
         }
         #endregion
 
-        #region PHASING OUT
-        //* Phasing out the codes below, to move to retrieve necessary information from DbFacade for speedier performance and lighter MODEL
-
-        /**
-         * When a property is first set, we store a shallow clone of the value. Used in the _"Save"_ method to determin what relationships should be removed.
-         *
-         * > NOTE: Combine this with a Before and AfterSave event, makes for simple change detection.
-         */
-        [JsonIgnore]
-        [PetaPoco.Ignore]
-        public Dictionary<string, object> OriginalPropertyBag
-        {
-            get
-            {
-                if (_OriginalPropertyBag == null)
-                {
-                    // Here we create _"THE"_ original property bag. Think about it the original values of all properties are
-                    // their defaults. Lists are initialised so we don't have to check for null, we can just loop over an empty list.
-
-                    _OriginalPropertyBag = new Dictionary<string, object>();
-
-                    foreach (var kyp in PocoData.Columns)
-                    {
-                        var prop = kyp.Value.PropertyInfo;
-                        if (TypeMapper.IsList(prop.PropertyType))
-                        {
-                            _OriginalPropertyBag[prop.Name] =
-                            Activator.CreateInstance
-                            (
-                                typeof(List<>).MakeGenericType
-                                (
-                                    prop.PropertyType.GenericTypeArguments[0]
-                                )
-                            );
-                        }
-                        else if (prop.PropertyType.IsValueType)
-                        {
-                            _OriginalPropertyBag[prop.Name] = Activator
-                            .CreateInstance(prop.PropertyType);
-                        }
-                        else
-                        {
-                            _OriginalPropertyBag[prop.Name] = null;
-                        }
-                    }
-                    _OriginalPropertyBagCount = _OriginalPropertyBag.Count();
-                }
-
-                return _OriginalPropertyBag;
-            }
-        }
-
-        private Dictionary<string, object> _OriginalPropertyBag;
-        private static int _OriginalPropertyBagCount;
-        #endregion
-
         #region DYNAMIC LIST HANDLING
 
         public delegate void ModelSavedEventHandler(object sender, ModelChangedEventArgs<TModel> e);
         public event ModelSavedEventHandler ModelSavedEvent;
 
-        Dictionary<string, dynamic> specialList = new Dictionary<string, dynamic>();
-
-        public List<T> getDynamicBindingList<T>(IEnumerable<T> list) where T : Model<T>, new()
-        {
-            return Activator.CreateInstance
-             (
-                 typeof(List<>).MakeGenericType
-                 (
-                     list.GetType().GenericTypeArguments[0]
-                 )
-             ) as List<T>;
-            /*
-             * // is it neessary to listen to the list now?
-            bindingList.ListChanged += new ListChangedEventHandler
-            (
-                (sender, e) =>
-                {
-                    if (!triggerChangeEvent) return;
-
-                    switch (e.ListChangedType)
-                    {
-                        case ListChangedType.ItemAdded:
-                        case ListChangedType.ItemDeleted:
-                            {
-                                var changed = PocoColumns[e.PropertyDescriptor.Name];
-
-
-                            }
-                            break;
-                    }
-                }
-            );
-            */
-        }
-
         protected void OnModelSaved(object sender, ModelChangedEventArgs<TModel> e)
         {
             ModelSavedEvent?.Invoke(sender, e);
         }
+
         #endregion
     }
 
     public static class ModelExtensionMethods
     {
-        public static void Save<T>(this IEnumerable<T> enumerable) where T : Model<T>, new()
+        public static void Save<T>(this IEnumerable<T> enumerable, dynamic parent = null) where T : Model<T>, new()
         {
             if (enumerable == null) return;
 
@@ -464,14 +453,14 @@ namespace Broccoli.Core.Database.Eloquent
             {
                 Parallel.ForEach(enumerable, (item) =>
                 {
-                    item.Save();
+                    item.Save(parent);
                 });
             }
             else
             {
                 foreach (var item in enumerable)
                 {
-                    item.Save();
+                    item.Save(parent);
                 }
             }
         }

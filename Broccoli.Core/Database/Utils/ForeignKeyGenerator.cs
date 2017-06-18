@@ -45,7 +45,6 @@ namespace Broccoli.Core.Database.Utils
             {
                 throw ex;
             }
-
         }
 
         public virtual string GenerateOnClauseForeignKey(string thisTable, string thatTable)

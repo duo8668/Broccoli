@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Broccoli.Core.Database.Eloquent;
 using System.Reflection;
 using Broccoli.Core.Database.Dynamic;
+using Broccoli.Core.Database.Utils;
 
 namespace Broccoli.Core.Database.Eloquent
 {
@@ -239,28 +240,14 @@ namespace Broccoli.Core.Database.Eloquent
             Save();
 
             if (parent != null)
-            {
-                var parentModelName = typeof(T).Name;
-
-                //* Get this table and that table name
-                var thatModel = Dynamic(parent);
-                var thisModelName = ModelName;
-                var thatModelName = thatModel.ModelName;
-                var intermediateModelName = fnStdGenerateIntermediateModelName(ModelName, thatModelName);
-                //* Initialize target model
-                //  var targetModel = DbFacade.DynamicModels[fnStdGenerateIntermediateModelName(ModelName, thatModelName)];
-                Model targetModel = Dynamic(ModelFacade.GenerateIntermediateModel(intermediateModelName));
-
-                targetModel.Set(Id, ModelName + "Id");
-                targetModel.Set(thatModel.Id, thatModelName + "Id");
-                var firstCol = DbFacade.PocoDatas[intermediateModelName].GetColumnName(ModelName + "Id");
-                var secondCol = DbFacade.PocoDatas[intermediateModelName].GetColumnName(thatModelName + "Id");
-                var theModel = targetModel.Find(string.Format(" {0}.{1}={3} AND {0}.{2}={4} ", targetModel.TableName, firstCol, secondCol, Id, thatModel.Id));
+            { 
+                IntermediaTableVisitor visitor = new IntermediaTableVisitor();
+                visitor.Visit(this, parent);
                 //* check if id is invalid, if it is then we need to get the created ID of THIS and add the relationship
                 if (Id <= 0)
                 {
-                    targetModel.CreatedAt = DateTime.Now;
-                    targetModel.ModifiedAt = DateTime.Now;
+                    visitor.IntermediateModel.CreatedAt = DateTime.Now;
+                    visitor.IntermediateModel.ModifiedAt = DateTime.Now;
                     //targetModel.Save();
                 }
                 else
@@ -270,8 +257,7 @@ namespace Broccoli.Core.Database.Eloquent
 
                     if (!hasThis)
                     {
-
-                        targetModel.DeletedAt = DateTime.Now;
+                        visitor.IntermediateModel.DeletedAt = DateTime.Now;
                         //  targetModel.Save();
                     }
                 }

@@ -91,6 +91,7 @@
     <Compile Include="Database\Utils\Converters\PredicateConverter.cs" />
     <Compile Include="Database\Utils\Converters\UpdatePredicateConverter.cs" />
     <Compile Include="Database\Utils\ForeignKeyGenerator.cs" />
+    <Compile Include="Database\Utils\IntermediaTableVisitor.cs" />
     <Compile Include="Entities\Core\InformationSchema.cs" />
     <Compile Include="Entities\Customer.cs" />
     <Compile Include="Entities\Invoice.cs" />

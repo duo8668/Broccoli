@@ -40,10 +40,10 @@ namespace Broccoli
             var rabbitChannel = testInitRabbitMQChannel();
             //testRabbitMQConsume(rabbitChannel);
             var search = pureQueryPerformancetest();
-            explicitlySavePerformanceTest(search);
-            search.Dispose();
+          
             Parallel.For(0, run, (ssss) =>
             {
+                explicitlySavePerformanceTest(search);
                 //   explicitlySavePerformanceTest(search);
                 //testRabbitMQPub(rabbitChannel);
             });
@@ -74,8 +74,8 @@ namespace Broccoli
                              arguments: null);
             channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
             return channel;
-
         }
+
         public void testRabbitMQPub(IModel channel)
         {
             // var message = GetMessage(args);
@@ -107,8 +107,8 @@ namespace Broccoli
                 var body = ea.Body;
                 var message = Encoding.UTF8.GetString(body);
                 textBox1.Text += string.Format(" [x] Received {0}" + System.Environment.NewLine, message);
-
             };
+
             channel.BasicConsume(queue: "task_queue", noAck: true, consumer: consumer);
         }
 
@@ -145,6 +145,7 @@ namespace Broccoli
             // return DbFacade.GetDatabaseConnection(Invoice.ConnectionName).Query<Invoice>(@"select * from sales__invoice WHERE invoice_num='INV-222222'").SingleOrDefault();
             // return Invoice.Find((lin) => lin.Where((myInv) => myInv.InvoiceNum == "INV-33333"));
         }
+
         private void pureInsertPerformanceTest()
         {
             var invToAdd = new Invoice();
@@ -175,7 +176,7 @@ namespace Broccoli
             {
                 cust.LastName = cust.LastName.Replace("_", "");
             }
-        //    search.Save();
+            //    search.Save();
         }
         private string testArgs(string main = "", params object[] args)
         {
@@ -188,6 +189,11 @@ namespace Broccoli
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             Application.Exit();
         }

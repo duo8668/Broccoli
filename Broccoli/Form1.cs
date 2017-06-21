@@ -40,8 +40,8 @@ namespace Broccoli
             Parallel.For(0, run, (ssss) =>
             {
                 bdt.explicitlySavePerformanceTest(search);
-                //   explicitlySavePerformanceTest(search);
-                //testRabbitMQPub(rabbitChannel);
+                // explicitlySavePerformanceTest(search);
+                // testRabbitMQPub(rabbitChannel);
             });
 
             var time2 = DateTime.Now;

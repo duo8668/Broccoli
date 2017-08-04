@@ -334,6 +334,11 @@ namespace Broccoli.Core.Database.Builder
             TargetTable = targetTable;
         }
 
+        public LinqSql<TModel> Join<T>(T targetModel) where T : Model<T>, new()
+        {
+            return _sql;
+        }
+
         public LinqSql<TModel> Join(string targetTable)
         {
             return _sql;

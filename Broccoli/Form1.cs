@@ -32,7 +32,7 @@ namespace Broccoli
 
         private void button1_Click(object sender, EventArgs e)
         {
-            int run = 100;
+            int run = 5;
             var time1 = DateTime.Now;
             label1.Text = time1.ToString("HH:mm:ss.fffff");
             BroccoDbTester bdt = new BroccoDbTester();

@@ -31,6 +31,5 @@ C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.xml
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.Schema.xml
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\RabbitMQ.Client.xml
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\StackExchange.Redis.xml
-C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.csprojResolveAssemblyReference.cache
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.dll
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.pdb

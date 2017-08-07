@@ -46,7 +46,7 @@ namespace Broccoli.POC
 
             foreach (var cust in search.Customers)
             {
-                cust.LastName += "_";
+                cust.LastName += "@";
             }
             search.Save();
             foreach (var cust in search.Customers)

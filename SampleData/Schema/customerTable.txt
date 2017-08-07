@@ -1,0 +1,55 @@
+CREATE TABLE `customer__customer` (
+  `id` char(32) NOT NULL,
+  `firstName` varchar(100) DEFAULT NULL,
+  `lastName` varchar(100) DEFAULT NULL,
+  `displayName` varchar(200) DEFAULT NULL,
+  `contact` varchar(20) DEFAULT NULL,
+  `dob` datetime DEFAULT NULL,
+  `membershipId` char(32) DEFAULT NULL,
+  `reference` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `f3994d5f09683ba9de68ab93ff47e845` (`firstName`,`lastName`,`contact`),
+  KEY `51b4ca52d9db59404310c09d0a1281bd` (`contact`),
+  KEY `662b39e5b973d4a489de5d84add85518` (`dob`),
+  KEY `8c8789a7828df104177561ed09ba2af1` (`membershipId`),
+  KEY `22a803b2b7b782267d56d836e042700a` (`displayName`,`contact`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `customer__membership` (
+  `id` char(32) NOT NULL,
+  `name` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `e101e6748a04ba947738e1752b426bbf` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `customer__field` (
+  `id` char(32) NOT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `description` varchar(250) DEFAULT NULL,
+  `type` varchar(50) DEFAULT NULL,
+  `fileId` char(32) DEFAULT NULL,
+  `fieldGroup` varchar(100) DEFAULT NULL,
+  `size` varchar(3) DEFAULT NULL,
+  `textCaps` varchar(20) DEFAULT NULL,
+  `unique` tinyint(4) DEFAULT NULL,
+  `multiValued` tinyint(4) DEFAULT NULL,
+  `compulsory` tinyint(4) DEFAULT NULL,
+  `allowedValue` varchar(4000) DEFAULT NULL,
+  `showInSummary` tinyint(4) DEFAULT NULL,
+  `displayOrder` bigint(20) DEFAULT NULL,
+  `defaultValue` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `08b8d0991435fd4eca423e28a2ba64d0` (`name`),
+  KEY `47a7b991f9f0e6a95c09b8b30506bd01` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE `customer__customerData` (
+  `id` char(32) NOT NULL,
+  `customerId` char(32) DEFAULT NULL,
+  `fieldId` char(32) DEFAULT NULL,
+  `value` longtext,
+  PRIMARY KEY (`id`),
+  KEY `b964c81367ba98ed455b3a25057be1c0` (`customerId`,`fieldId`),
+  KEY `96128f30b09552b58631ca5cf0685d14` (`fieldId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

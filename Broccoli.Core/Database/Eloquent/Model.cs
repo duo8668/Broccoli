@@ -14,11 +14,6 @@ using Broccoli.Core.Database.Utils;
 
 namespace Broccoli.Core.Database.Eloquent
 {
-    /*
-     * The challenge part of the Model is about the relationship discoverer.
-     * Ideally, we should save the discovered relationship but we might end up recursive calls.
-     * We need to handle this case.
-     */
     [PetaPoco.PrimaryKey("id")]
     public class Model<TModel> : ModelBase<TModel> where TModel : Model<TModel>, new()
     {
@@ -240,7 +235,7 @@ namespace Broccoli.Core.Database.Eloquent
             Save();
 
             if (parent != null)
-            { 
+            {
                 IntermediaTableVisitor visitor = new IntermediaTableVisitor();
                 visitor.Visit(this, parent);
                 //* check if id is invalid, if it is then we need to get the created ID of THIS and add the relationship
@@ -248,7 +243,7 @@ namespace Broccoli.Core.Database.Eloquent
                 {
                     visitor.IntermediateModel.CreatedAt = DateTime.Now;
                     visitor.IntermediateModel.ModifiedAt = DateTime.Now;
-                    //targetModel.Save();
+                    visitor.IntermediateModel.Save();
                 }
                 else
                 {
@@ -257,8 +252,7 @@ namespace Broccoli.Core.Database.Eloquent
 
                     if (!hasThis)
                     {
-                        visitor.IntermediateModel.DeletedAt = DateTime.Now;
-                        //  targetModel.Save();
+                        visitor.IntermediateModel.SoftDelete();
                     }
                 }
             }
@@ -330,14 +324,7 @@ namespace Broccoli.Core.Database.Eloquent
                             .Join(thatTableName)
                             .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
                             .Where(predicate)) as IEnumerable<T>;
-
-            //* Add the list into observer so that it can execute save when the parent call save. 
-            /*
-            ModelSavedEvent += (o, ee) =>
-           {
-               results.Save();
-           };
-           */
+            
             return results;
         }
 

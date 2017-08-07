@@ -16,3 +16,21 @@ C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.dll
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.pdb
 C:\Users\maousheng\Documents\Visual Studio 2015\Projects\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.csprojResolveAssemblyReference.cache
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\TaskQueue.config
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Broccoli.Core.dll.config
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Broccoli.Core.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Broccoli.Core.pdb
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Inflector.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\MySql.Data.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.Schema.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\RabbitMQ.Client.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\StackExchange.Redis.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\System.Linq.Dynamic.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.xml
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\Newtonsoft.Json.Schema.xml
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\RabbitMQ.Client.xml
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\StackExchange.Redis.xml
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.csprojResolveAssemblyReference.cache
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.dll
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.pdb

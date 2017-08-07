@@ -15,11 +15,10 @@ namespace Broccoli.Core.Entities
     {
         public Invoice()
         {
-            ModelSavedEvent += Invoice_ModelSavedEvent;
-        }
 
-        
-        private void Invoice_ModelSavedEvent(object sender, Database.Events.ModelChangedEventArgs<Invoice> e)
+        }
+         
+        public override void Model_ModelSavedEvent(object sender, Database.Events.ModelChangedEventArgs<Invoice> e)
         {
             Customers.Save(this, _originalCustomers);
         }
@@ -65,6 +64,8 @@ namespace Broccoli.Core.Entities
                 if (_customers == null)
                 {
                     _customers = hasMany<Customer>();
+
+                    //* The below will return a new instance instead of current instance. If we reuse the reference, the recorded will be what has changed
                     _originalCustomers = _customers.AsEnumerable();
                 }
                 return _customers;

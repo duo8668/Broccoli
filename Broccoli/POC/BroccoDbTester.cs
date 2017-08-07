@@ -12,8 +12,8 @@ namespace Broccoli.POC
     {
         public void hasManyPerformanceTest(Invoice search)
         {
-            var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
-
+            //var custs = search.hasMany<Customer>((cccc) => cccc.FirstName == "%a%", true).ToList();
+            var custs = search.hasMany<Customer>((inv, cust) => inv.Id == cust.Id,null,false).ToList();
         }
 
         public Invoice pureQueryPerformancetest()

@@ -40,7 +40,7 @@ namespace Broccoli.Core.Database.Eloquent
     }
 
     [PetaPoco.PrimaryKey("id")]
-    public class ModelBase<TModel> : ModelBase, IModelBase where TModel : Model<TModel>, new()
+    public class ModelBase<TModel> : ModelBase, IModelBase, IModelSave<TModel> where TModel : Model<TModel>, new()
     {
 
         protected static string _modelName;
@@ -64,6 +64,7 @@ namespace Broccoli.Core.Database.Eloquent
         public ModelBase()
         {
             PropertyBag = new Dictionary<string, object>();
+            ModelSavedEvent += Model_ModelSavedEvent;
         }
 
         public static void Init()
@@ -440,8 +441,19 @@ namespace Broccoli.Core.Database.Eloquent
             ModelSavedEvent?.Invoke(sender, e);
         }
 
+        public virtual void Model_ModelSavedEvent(object sender, ModelChangedEventArgs<TModel> e)
+        {
+           
+        }
+
         #endregion
     }
+
+    public interface IModelSave<TModel>
+    {
+        void Model_ModelSavedEvent(object sender, Database.Events.ModelChangedEventArgs<TModel> e);
+    }
+
 
     public static class ModelExtensionMethods
     {

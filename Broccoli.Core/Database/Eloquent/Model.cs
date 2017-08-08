@@ -324,7 +324,7 @@ namespace Broccoli.Core.Database.Eloquent
                             .Join(thatTableName)
                             .On(fnHasManyMyKey(targetModel.PocoData.TableInfo), fnStdGenerateForeignKey(thatTableName, intermediaTable), "")
                             .Where(predicate)) as IEnumerable<T>;
-            
+
             return results;
         }
 

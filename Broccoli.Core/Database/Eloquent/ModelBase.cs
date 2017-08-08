@@ -366,7 +366,7 @@ namespace Broccoli.Core.Database.Eloquent
         /// <summary>
         /// 
         /// </summary>
-        private static List<string> _modifiedColumns = new List<string>();
+        private List<string> _modifiedColumns = new List<string>();
 
         /// <summary>
         /// 

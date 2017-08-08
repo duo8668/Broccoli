@@ -33,3 +33,4 @@ C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\RabbitMQ.Client.xml
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\bin\Debug\StackExchange.Redis.xml
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.dll
 C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.pdb
+C:\Users\admin\Documents\Broccoli\Broccoli.Core\obj\Debug\Broccoli.Core.csprojResolveAssemblyReference.cache

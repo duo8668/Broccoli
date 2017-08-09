@@ -23,7 +23,7 @@ namespace Broccoli.Core.Database.Eloquent
 
         public static LinqSql<TModel> FilterTrashed(bool withTrashed = false)
         {
-            if (withTrashed)
+            if (!withTrashed)
             {
                 return new LinqSql<TModel>().Where(e => e.DeletedAt == null);
             }
